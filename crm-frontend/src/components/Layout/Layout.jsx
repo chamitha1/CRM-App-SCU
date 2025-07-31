@@ -15,7 +15,7 @@ const Layout = ({ children }) => {
   return (
     <Box sx={{ display: 'flex' }}>
       {/* Header */}
-      <Header onMenuToggle={handleSidebarToggle} />
+      <Header onMenuToggle={handleSidebarToggle} sidebarOpen={sidebarOpen} />
 
       {/* Sidebar */}
       <Sidebar open={sidebarOpen} onToggle={handleSidebarToggle} />
@@ -26,10 +26,21 @@ const Layout = ({ children }) => {
         sx={{
           flexGrow: 1,
           p: 3,
-          width: { md: `calc(100% - ${240}px)` },
+          width: { 
+            xs: '100%',
+            md: sidebarOpen ? `calc(100% - ${240}px)` : '100%'
+          },
+          ml: { 
+            xs: 0,
+            md: sidebarOpen ? `${240}px` : 0
+          },
           mt: '64px', // Height of AppBar
           minHeight: 'calc(100vh - 64px)',
           backgroundColor: theme.palette.background.default,
+          transition: theme.transitions.create(['margin', 'width'], {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.leavingScreen,
+          }),
         }}
       >
         {children}

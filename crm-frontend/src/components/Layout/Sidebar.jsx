@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Drawer,
   List,
@@ -21,7 +21,6 @@ import {
   Build as BuildIcon,
   Group as GroupIcon,
   Assessment as AssessmentIcon,
-  Menu as MenuIcon,
   ChevronLeft as ChevronLeftIcon
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -66,11 +65,9 @@ const Sidebar = ({ open, onToggle }) => {
         <Typography variant="h6" color="primary">
           Construction CRM
         </Typography>
-        {isMobile && (
-          <IconButton onClick={onToggle}>
-            <ChevronLeftIcon />
-          </IconButton>
-        )}
+        <IconButton onClick={onToggle}>
+          <ChevronLeftIcon />
+        </IconButton>
       </Box>
 
       {/* Navigation Menu */}
@@ -138,15 +135,21 @@ const Sidebar = ({ open, onToggle }) => {
 
   return (
     <Drawer
-      variant="permanent"
+      variant="persistent"
+      open={open}
       sx={{
         display: { xs: 'none', md: 'block' },
         '& .MuiDrawer-paper': {
           boxSizing: 'border-box',
           width: drawerWidth,
+          position: 'fixed',
+          height: '100%',
+          transition: theme.transitions.create('width', {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.enteringScreen,
+          }),
         },
       }}
-      open
     >
       {drawerContent}
     </Drawer>
