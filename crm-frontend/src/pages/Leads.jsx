@@ -61,36 +61,25 @@ const Leads = () => {
   const fetchLeads = async () => {
     try {
       const response = await leadAPI.getAll();
-      setLeads(response.data);
+      console.log('API Response:', response.data);
+      
+      // Handle the backend response structure
+      if (response.data.success) {
+        const leadsData = response.data.data.map(lead => ({
+          ...lead,
+          id: lead._id || lead.id // MongoDB uses _id
+        }));
+        setLeads(leadsData);
+      } else {
+        setLeads([]);
+      }
     } catch (error) {
       console.error('Error fetching leads:', error);
-      // Mock data for development
-      setLeads([
-        {
-          id: 1,
-          name: 'Mike Johnson',
-          email: 'mike@example.com',
-          phone: '(555) 111-2222',
-          company: 'Johnson Builders',
-          source: 'Website',
-          status: 'new',
-          notes: 'Interested in residential project',
-          estimatedValue: 75000,
-          createdAt: '2024-01-25'
-        },
-        {
-          id: 2,
-          name: 'Sarah Wilson',
-          email: 'sarah@example.com',
-          phone: '(555) 333-4444',
-          company: 'Wilson Properties',
-          source: 'Referral',
-          status: 'contacted',
-          notes: 'Commercial development project',
-          estimatedValue: 200000,
-          createdAt: '2024-01-22'
-        }
-      ]);
+      console.error('Error details:', error.response?.data);
+      
+      // Show error message but don't use mock data
+      toast.error('Failed to fetch leads. Please make sure the backend server is running.');
+      setLeads([]);
     } finally {
       setLoading(false);
     }
