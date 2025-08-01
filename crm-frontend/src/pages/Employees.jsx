@@ -43,11 +43,11 @@ const Employees = () => {
     name: '',
     email: '',
     phone: '',
-    role: 'employee',
+    role: 'Employee',
     department: '',
     hireDate: '',
     salary: '',
-    status: 'active'
+    status: 'Active'
   });
 
   useEffect(() => {
@@ -63,26 +63,26 @@ const Employees = () => {
       // Mock data for development
       setEmployees([
         {
-          id: 1,
+          _id: '1',
           name: 'John Manager',
           email: 'john.manager@company.com',
           phone: '(555) 123-4567',
-          role: 'manager',
+          role: 'Manager',
           department: 'Operations',
-          hireDate: '2023-01-15',
+          hireDate: '2023-01-15T00:00:00.000Z',
           salary: 75000,
-          status: 'active'
+          status: 'Active'
         },
         {
-          id: 2,
+          _id: '2',
           name: 'Sarah Worker',
           email: 'sarah.worker@company.com',
           phone: '(555) 987-6543',
-          role: 'employee',
+          role: 'Employee',
           department: 'Construction',
-          hireDate: '2023-03-20',
+          hireDate: '2023-03-20T00:00:00.000Z',
           salary: 55000,
-          status: 'active'
+          status: 'Active'
         }
       ]);
     } finally {
@@ -96,18 +96,24 @@ const Employees = () => {
       name: '',
       email: '',
       phone: '',
-      role: 'employee',
+      role: 'Employee',
       department: '',
       hireDate: '',
       salary: '',
-      status: 'active'
+      status: 'Active'
     });
     setDialogOpen(true);
   };
 
   const handleEdit = (employee) => {
     setEditingEmployee(employee);
-    setFormData(employee);
+    // Format the employee data for the form
+    const formattedEmployee = {
+      ...employee,
+      hireDate: employee.hireDate ? new Date(employee.hireDate).toISOString().split('T')[0] : '',
+      salary: employee.salary?.toString() || ''
+    };
+    setFormData(formattedEmployee);
     setDialogOpen(true);
   };
 
@@ -126,11 +132,31 @@ const Employees = () => {
 
   const handleSubmit = async () => {
     try {
+      // Validate required fields
+      if (!formData.name || !formData.email || !formData.phone || !formData.department || !formData.hireDate || !formData.salary) {
+        toast.error('Please fill in all required fields');
+        return;
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email)) {
+        toast.error('Please enter a valid email address');
+        return;
+      }
+
+      // Prepare data for backend
+      const employeeData = {
+        ...formData,
+        hireDate: new Date(formData.hireDate).toISOString(),
+        salary: Number(formData.salary)
+      };
+
       if (editingEmployee) {
-        await employeeAPI.update(editingEmployee.id, formData);
+        await employeeAPI.update(editingEmployee._id || editingEmployee.id, employeeData);
         toast.success('Employee updated successfully');
       } else {
-        await employeeAPI.create(formData);
+        await employeeAPI.create(employeeData);
         toast.success('Employee created successfully');
       }
       setDialogOpen(false);
@@ -142,18 +168,20 @@ const Employees = () => {
   };
 
   const getStatusColor = (status) => {
-    switch (status) {
+    switch (status?.toLowerCase()) {
       case 'active': return 'success';
       case 'inactive': return 'error';
+      case 'on leave': return 'warning';
       default: return 'default';
     }
   };
 
   const getRoleColor = (role) => {
-    switch (role) {
-      case 'admin': return 'error';
+    switch (role?.toLowerCase()) {
       case 'manager': return 'warning';
+      case 'supervisor': return 'error';
       case 'employee': return 'info';
+      case 'worker': return 'default';
       default: return 'default';
     }
   };
@@ -221,7 +249,7 @@ const Employees = () => {
                       <IconButton onClick={() => handleEdit(employee)}>
                         <EditIcon />
                       </IconButton>
-                      <IconButton onClick={() => handleDelete(employee.id)}>
+                      <IconButton onClick={() => handleDelete(employee._id || employee.id)}>
                         <DeleteIcon />
                       </IconButton>
                     </TableCell>
@@ -277,9 +305,10 @@ const Employees = () => {
                 label="Role"
                 onChange={(e) => setFormData({ ...formData, role: e.target.value })}
               >
-                <MenuItem value="admin">Admin</MenuItem>
-                <MenuItem value="manager">Manager</MenuItem>
-                <MenuItem value="employee">Employee</MenuItem>
+                <MenuItem value="Employee">Employee</MenuItem>
+                <MenuItem value="Manager">Manager</MenuItem>
+                <MenuItem value="Supervisor">Supervisor</MenuItem>
+                <MenuItem value="Worker">Worker</MenuItem>
               </Select>
             </FormControl>
             <TextField
@@ -310,8 +339,9 @@ const Employees = () => {
                 label="Status"
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
               >
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="inactive">Inactive</MenuItem>
+                <MenuItem value="Active">Active</MenuItem>
+                <MenuItem value="Inactive">Inactive</MenuItem>
+                <MenuItem value="On Leave">On Leave</MenuItem>
               </Select>
             </FormControl>
           </Box>
