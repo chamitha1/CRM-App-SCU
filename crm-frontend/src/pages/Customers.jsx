@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+gimport React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -58,37 +58,13 @@ const Customers = () => {
 
   const fetchCustomers = async () => {
     try {
+      setLoading(true);
       const response = await customerAPI.getAll();
       setCustomers(response.data);
     } catch (error) {
       console.error('Error fetching customers:', error);
-      // Mock data for development
-      setCustomers([
-        {
-          id: 1,
-          name: 'John Smith',
-          email: 'john@example.com',
-          phone: '(555) 123-4567',
-          company: 'Smith Construction',
-          address: '123 Main St, City, State',
-          status: 'active',
-          projectType: 'Residential',
-          budget: 50000,
-          createdAt: '2024-01-15'
-        },
-        {
-          id: 2,
-          name: 'Jane Doe',
-          email: 'jane@example.com',
-          phone: '(555) 987-6543',
-          company: 'Doe Enterprises',
-          address: '456 Oak Ave, City, State',
-          status: 'pending',
-          projectType: 'Commercial',
-          budget: 150000,
-          createdAt: '2024-01-20'
-        }
-      ]);
+      toast.error('Failed to fetch customers');
+      setCustomers([]);
     } finally {
       setLoading(false);
     }
@@ -111,7 +87,16 @@ const Customers = () => {
 
   const handleEdit = (customer) => {
     setEditingCustomer(customer);
-    setFormData(customer);
+    setFormData({
+      name: customer.name || '',
+      email: customer.email || '',
+      phone: customer.phone || '',
+      company: customer.company || '',
+      address: customer.address || '',
+      status: customer.status || 'active',
+      projectType: customer.projectType || '',
+      budget: customer.budget || ''
+    });
     setDialogOpen(true);
   };
 
@@ -123,7 +108,8 @@ const Customers = () => {
         fetchCustomers();
       } catch (error) {
         console.error('Error deleting customer:', error);
-        toast.error('Failed to delete customer');
+        const errorMessage = error.response?.data?.message || 'Failed to delete customer';
+        toast.error(errorMessage);
       }
     }
   };
@@ -131,7 +117,7 @@ const Customers = () => {
   const handleSubmit = async () => {
     try {
       if (editingCustomer) {
-        await customerAPI.update(editingCustomer.id, formData);
+        await customerAPI.update(editingCustomer._id, formData);
         toast.success('Customer updated successfully');
       } else {
         await customerAPI.create(formData);
@@ -141,14 +127,15 @@ const Customers = () => {
       fetchCustomers();
     } catch (error) {
       console.error('Error saving customer:', error);
-      toast.error('Failed to save customer');
+      const errorMessage = error.response?.data?.message || 'Failed to save customer';
+      toast.error(errorMessage);
     }
   };
 
   const filteredCustomers = customers.filter(customer =>
-    customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.company.toLowerCase().includes(searchTerm.toLowerCase())
+    customer.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    customer.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    customer.company?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getStatusColor = (status) => {
@@ -207,33 +194,43 @@ const Customers = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredCustomers
-                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((customer) => (
-                  <TableRow key={customer.id}>
-                    <TableCell>{customer.name}</TableCell>
-                    <TableCell>{customer.email}</TableCell>
-                    <TableCell>{customer.phone}</TableCell>
-                    <TableCell>{customer.company}</TableCell>
-                    <TableCell>{customer.projectType}</TableCell>
-                    <TableCell>${customer.budget?.toLocaleString()}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={customer.status}
-                        color={getStatusColor(customer.status)}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <IconButton onClick={() => handleEdit(customer)}>
-                        <EditIcon />
-                      </IconButton>
-                      <IconButton onClick={() => handleDelete(customer.id)}>
-                        <DeleteIcon />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                ))}
+              {filteredCustomers.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} align="center">
+                    <Typography variant="body2" color="textSecondary">
+                      No customers found
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredCustomers
+                  .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                  .map((customer) => (
+                    <TableRow key={customer._id}>
+                      <TableCell>{customer.name}</TableCell>
+                      <TableCell>{customer.email}</TableCell>
+                      <TableCell>{customer.phone}</TableCell>
+                      <TableCell>{customer.company}</TableCell>
+                      <TableCell>{customer.projectType}</TableCell>
+                      <TableCell>${customer.budget?.toLocaleString()}</TableCell>
+                      <TableCell>
+                        <Chip
+                          label={customer.status}
+                          color={getStatusColor(customer.status)}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <IconButton onClick={() => handleEdit(customer)}>
+                          <EditIcon />
+                        </IconButton>
+                        <IconButton onClick={() => handleDelete(customer._id)}>
+                          <DeleteIcon />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))
+              )}
             </TableBody>
           </Table>
         </TableContainer>
@@ -263,6 +260,7 @@ const Customers = () => {
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               fullWidth
+              required
             />
             <TextField
               label="Email"
@@ -270,18 +268,21 @@ const Customers = () => {
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               fullWidth
+              required
             />
             <TextField
               label="Phone"
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
               fullWidth
+              required
             />
             <TextField
               label="Company"
               value={formData.company}
               onChange={(e) => setFormData({ ...formData, company: e.target.value })}
               fullWidth
+              required
             />
             <TextField
               label="Address"
@@ -290,6 +291,7 @@ const Customers = () => {
               fullWidth
               multiline
               rows={2}
+              required
             />
             <FormControl fullWidth>
               <InputLabel>Status</InputLabel>
@@ -308,6 +310,7 @@ const Customers = () => {
               value={formData.projectType}
               onChange={(e) => setFormData({ ...formData, projectType: e.target.value })}
               fullWidth
+              required
             />
             <TextField
               label="Budget"
@@ -315,6 +318,7 @@ const Customers = () => {
               value={formData.budget}
               onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
               fullWidth
+              required
             />
           </Box>
         </DialogContent>
