@@ -42,14 +42,21 @@ const Customers = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [formData, setFormData] = useState({
-    name: '',
+    firstName: '',
+    lastName: '',
     email: '',
     phone: '',
     company: '',
-    address: '',
+    address: {
+      street: '',
+      city: '',
+      state: '',
+      zipCode: '',
+      country: ''
+    },
     status: 'active',
-    projectType: '',
-    budget: ''
+    tags: [],
+    notes: ''
   });
 
   useEffect(() => {
@@ -97,21 +104,49 @@ const Customers = () => {
   const handleAddNew = () => {
     setEditingCustomer(null);
     setFormData({
-      name: '',
+      firstName: '',
+      lastName: '',
       email: '',
       phone: '',
       company: '',
-      address: '',
+      address: {
+        street: '',
+        city: '',
+        state: '',
+        zipCode: '',
+        country: ''
+      },
       status: 'active',
-      projectType: '',
-      budget: ''
+      tags: [],
+      notes: ''
     });
     setDialogOpen(true);
   };
 
   const handleEdit = (customer) => {
     setEditingCustomer(customer);
-    setFormData(customer);
+    
+    // Convert customer data to form format
+    const mappedFormData = {
+      firstName: customer.firstName || '',
+      lastName: customer.lastName || '',
+      email: customer.email || '',
+      phone: customer.phone || '',
+      company: customer.company || '',
+      address: customer.address && typeof customer.address === 'object' ? 
+        customer.address : {
+          street: '',
+          city: '',
+          state: '',
+          zipCode: '',
+          country: ''
+        },
+      status: customer.status || 'active',
+      tags: customer.tags || [],
+      notes: customer.notes || ''
+    };
+    
+    setFormData(mappedFormData);
     setDialogOpen(true);
   };
 
@@ -131,7 +166,8 @@ const Customers = () => {
   const handleSubmit = async () => {
     try {
       if (editingCustomer) {
-        await customerAPI.update(editingCustomer.id, formData);
+        const customerId = editingCustomer._id || editingCustomer.id;
+        await customerAPI.update(customerId, formData);
         toast.success('Customer updated successfully');
       } else {
         await customerAPI.create(formData);
@@ -145,11 +181,15 @@ const Customers = () => {
     }
   };
 
-  const filteredCustomers = customers.filter(customer =>
-    customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.company.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredCustomers = customers.filter(customer => {
+    const fullName = customer.firstName && customer.lastName 
+      ? `${customer.firstName} ${customer.lastName}`.toLowerCase()
+      : (customer.name || '').toLowerCase();
+    
+    return fullName.includes(searchTerm.toLowerCase()) ||
+           (customer.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+           (customer.company || '').toLowerCase().includes(searchTerm.toLowerCase());
+  });
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -200,8 +240,7 @@ const Customers = () => {
                 <TableCell>Email</TableCell>
                 <TableCell>Phone</TableCell>
                 <TableCell>Company</TableCell>
-                <TableCell>Project Type</TableCell>
-                <TableCell>Budget</TableCell>
+                <TableCell>Address</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell>Actions</TableCell>
               </TableRow>
@@ -210,13 +249,22 @@ const Customers = () => {
               {filteredCustomers
                 .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 .map((customer) => (
-                  <TableRow key={customer.id}>
-                    <TableCell>{customer.name}</TableCell>
+                  <TableRow key={customer._id || customer.id}>
+                    <TableCell>
+                      {customer.firstName && customer.lastName 
+                        ? `${customer.firstName} ${customer.lastName}` 
+                        : customer.name || 'N/A'}
+                    </TableCell>
                     <TableCell>{customer.email}</TableCell>
                     <TableCell>{customer.phone}</TableCell>
-                    <TableCell>{customer.company}</TableCell>
-                    <TableCell>{customer.projectType}</TableCell>
-                    <TableCell>${customer.budget?.toLocaleString()}</TableCell>
+                    <TableCell>{customer.company || 'N/A'}</TableCell>
+                    <TableCell>
+                      {customer.address ? (
+                        typeof customer.address === 'string' 
+                          ? customer.address
+                          : `${customer.address.city || ''} ${customer.address.state || ''}`.trim() || 'N/A'
+                      ) : 'N/A'}
+                    </TableCell>
                     <TableCell>
                       <Chip
                         label={customer.status}
@@ -228,7 +276,7 @@ const Customers = () => {
                       <IconButton onClick={() => handleEdit(customer)}>
                         <EditIcon />
                       </IconButton>
-                      <IconButton onClick={() => handleDelete(customer.id)}>
+                      <IconButton onClick={() => handleDelete(customer._id || customer.id)}>
                         <DeleteIcon />
                       </IconButton>
                     </TableCell>
@@ -259,10 +307,18 @@ const Customers = () => {
         <DialogContent>
           <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mt: 1 }}>
             <TextField
-              label="Name"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              label="First Name"
+              value={formData.firstName}
+              onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
               fullWidth
+              required
+            />
+            <TextField
+              label="Last Name"
+              value={formData.lastName}
+              onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+              fullWidth
+              required
             />
             <TextField
               label="Email"
@@ -270,26 +326,20 @@ const Customers = () => {
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               fullWidth
+              required
             />
             <TextField
               label="Phone"
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
               fullWidth
+              required
             />
             <TextField
               label="Company"
               value={formData.company}
               onChange={(e) => setFormData({ ...formData, company: e.target.value })}
               fullWidth
-            />
-            <TextField
-              label="Address"
-              value={formData.address}
-              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              fullWidth
-              multiline
-              rows={2}
             />
             <FormControl fullWidth>
               <InputLabel>Status</InputLabel>
@@ -299,22 +349,47 @@ const Customers = () => {
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
               >
                 <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="pending">Pending</MenuItem>
                 <MenuItem value="inactive">Inactive</MenuItem>
+                <MenuItem value="prospect">Prospect</MenuItem>
               </Select>
             </FormControl>
             <TextField
-              label="Project Type"
-              value={formData.projectType}
-              onChange={(e) => setFormData({ ...formData, projectType: e.target.value })}
+              label="Street Address"
+              value={formData.address.street}
+              onChange={(e) => setFormData({ ...formData, address: { ...formData.address, street: e.target.value } })}
               fullWidth
             />
             <TextField
-              label="Budget"
-              type="number"
-              value={formData.budget}
-              onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
+              label="City"
+              value={formData.address.city}
+              onChange={(e) => setFormData({ ...formData, address: { ...formData.address, city: e.target.value } })}
               fullWidth
+            />
+            <TextField
+              label="State"
+              value={formData.address.state}
+              onChange={(e) => setFormData({ ...formData, address: { ...formData.address, state: e.target.value } })}
+              fullWidth
+            />
+            <TextField
+              label="Zip Code"
+              value={formData.address.zipCode}
+              onChange={(e) => setFormData({ ...formData, address: { ...formData.address, zipCode: e.target.value } })}
+              fullWidth
+            />
+            <TextField
+              label="Country"
+              value={formData.address.country}
+              onChange={(e) => setFormData({ ...formData, address: { ...formData.address, country: e.target.value } })}
+              fullWidth
+            />
+            <TextField
+              label="Notes"
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              fullWidth
+              multiline
+              rows={2}
             />
           </Box>
         </DialogContent>

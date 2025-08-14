@@ -44,14 +44,18 @@ const Leads = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingLead, setEditingLead] = useState(null);
   const [formData, setFormData] = useState({
-    name: '',
+    firstName: '',
+    lastName: '',
     email: '',
     phone: '',
     company: '',
-    source: '',
+    source: 'website',
     status: 'new',
+    value: 0,
+    priority: 'medium',
     notes: '',
-    estimatedValue: ''
+    tags: [],
+    assignedTo: null
   });
 
   useEffect(() => {
@@ -99,21 +103,42 @@ const Leads = () => {
   const handleAddNew = () => {
     setEditingLead(null);
     setFormData({
-      name: '',
+      firstName: '',
+      lastName: '',
       email: '',
       phone: '',
       company: '',
-      source: '',
+      source: 'website',
       status: 'new',
+      value: 0,
+      priority: 'medium',
       notes: '',
-      estimatedValue: ''
+      tags: [],
+      assignedTo: null
     });
     setDialogOpen(true);
   };
 
   const handleEdit = (lead) => {
     setEditingLead(lead);
-    setFormData(lead);
+    
+    // Convert lead data to form format
+    const mappedFormData = {
+      firstName: lead.firstName || '',
+      lastName: lead.lastName || '',
+      email: lead.email || '',
+      phone: lead.phone || '',
+      company: lead.company || '',
+      source: lead.source ? lead.source.toLowerCase() : 'website',
+      status: lead.status || 'new',
+      value: lead.value || lead.estimatedValue || 0,
+      priority: lead.priority || 'medium',
+      notes: lead.notes || '',
+      tags: lead.tags || [],
+      assignedTo: lead.assignedTo || null
+    };
+    
+    setFormData(mappedFormData);
     setDialogOpen(true);
   };
 
@@ -151,7 +176,8 @@ const Leads = () => {
   const handleSubmit = async () => {
     try {
       if (editingLead) {
-        await leadAPI.update(editingLead.id, formData);
+        const leadId = editingLead._id || editingLead.id;
+        await leadAPI.update(leadId, formData);
         toast.success('Lead updated successfully');
       } else {
         await leadAPI.create(formData);
@@ -165,11 +191,15 @@ const Leads = () => {
     }
   };
 
-  const filteredLeads = leads.filter(lead =>
-    lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    lead.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    lead.company.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredLeads = leads.filter(lead => {
+    const fullName = lead.firstName && lead.lastName 
+      ? `${lead.firstName} ${lead.lastName}`.toLowerCase()
+      : (lead.name || '').toLowerCase();
+    
+    return fullName.includes(searchTerm.toLowerCase()) ||
+           (lead.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+           (lead.company || '').toLowerCase().includes(searchTerm.toLowerCase());
+  });
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -231,13 +261,17 @@ const Leads = () => {
               {filteredLeads
                 .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 .map((lead) => (
-                  <TableRow key={lead.id}>
-                    <TableCell>{lead.name}</TableCell>
+                  <TableRow key={lead._id || lead.id}>
+                    <TableCell>
+                      {lead.firstName && lead.lastName 
+                        ? `${lead.firstName} ${lead.lastName}` 
+                        : lead.name || 'N/A'}
+                    </TableCell>
                     <TableCell>{lead.email}</TableCell>
                     <TableCell>{lead.phone}</TableCell>
-                    <TableCell>{lead.company}</TableCell>
+                    <TableCell>{lead.company || 'N/A'}</TableCell>
                     <TableCell>{lead.source}</TableCell>
-                    <TableCell>${lead.estimatedValue?.toLocaleString()}</TableCell>
+                    <TableCell>${(lead.value || lead.estimatedValue || 0).toLocaleString()}</TableCell>
                     <TableCell>
                       <Chip
                         label={lead.status}
@@ -254,7 +288,7 @@ const Leads = () => {
                       <IconButton onClick={() => handleEdit(lead)}>
                         <EditIcon />
                       </IconButton>
-                      <IconButton onClick={() => handleDelete(lead.id)}>
+                      <IconButton onClick={() => handleDelete(lead._id || lead.id)}>
                         <DeleteIcon />
                       </IconButton>
                     </TableCell>
@@ -285,10 +319,18 @@ const Leads = () => {
         <DialogContent>
           <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mt: 1 }}>
             <TextField
-              label="Name"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              label="First Name"
+              value={formData.firstName}
+              onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
               fullWidth
+              required
+            />
+            <TextField
+              label="Last Name"
+              value={formData.lastName}
+              onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+              fullWidth
+              required
             />
             <TextField
               label="Email"
@@ -296,12 +338,14 @@ const Leads = () => {
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               fullWidth
+              required
             />
             <TextField
               label="Phone"
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
               fullWidth
+              required
             />
             <TextField
               label="Company"
@@ -316,11 +360,12 @@ const Leads = () => {
                 label="Source"
                 onChange={(e) => setFormData({ ...formData, source: e.target.value })}
               >
-                <MenuItem value="Website">Website</MenuItem>
-                <MenuItem value="Referral">Referral</MenuItem>
-                <MenuItem value="Social Media">Social Media</MenuItem>
-                <MenuItem value="Cold Call">Cold Call</MenuItem>
-                <MenuItem value="Other">Other</MenuItem>
+                <MenuItem value="website">Website</MenuItem>
+                <MenuItem value="referral">Referral</MenuItem>
+                <MenuItem value="advertisement">Advertisement</MenuItem>
+                <MenuItem value="social_media">Social Media</MenuItem>
+                <MenuItem value="cold_call">Cold Call</MenuItem>
+                <MenuItem value="other">Other</MenuItem>
               </Select>
             </FormControl>
             <FormControl fullWidth>
@@ -333,14 +378,29 @@ const Leads = () => {
                 <MenuItem value="new">New</MenuItem>
                 <MenuItem value="contacted">Contacted</MenuItem>
                 <MenuItem value="qualified">Qualified</MenuItem>
-                <MenuItem value="lost">Lost</MenuItem>
+                <MenuItem value="proposal">Proposal</MenuItem>
+                <MenuItem value="negotiation">Negotiation</MenuItem>
+                <MenuItem value="closed_won">Closed Won</MenuItem>
+                <MenuItem value="closed_lost">Closed Lost</MenuItem>
+              </Select>
+            </FormControl>
+            <FormControl fullWidth>
+              <InputLabel>Priority</InputLabel>
+              <Select
+                value={formData.priority}
+                label="Priority"
+                onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+              >
+                <MenuItem value="low">Low</MenuItem>
+                <MenuItem value="medium">Medium</MenuItem>
+                <MenuItem value="high">High</MenuItem>
               </Select>
             </FormControl>
             <TextField
               label="Estimated Value"
               type="number"
-              value={formData.estimatedValue}
-              onChange={(e) => setFormData({ ...formData, estimatedValue: e.target.value })}
+              value={formData.value}
+              onChange={(e) => setFormData({ ...formData, value: Number(e.target.value) })}
               fullWidth
             />
             <TextField
