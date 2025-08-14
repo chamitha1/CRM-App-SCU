@@ -74,11 +74,15 @@ export const appointmentAPI = {
 
 // Asset API endpoints
 export const assetAPI = {
-  getAll: () => api.get('/assets'),
+  getAll: (params) => api.get('/assets', { params }),
   getById: (id) => api.get(`/assets/${id}`),
   create: (assetData) => api.post('/assets', assetData),
   update: (id, assetData) => api.put(`/assets/${id}`, assetData),
   delete: (id) => api.delete(`/assets/${id}`),
+  getStats: () => api.get('/assets/stats'),
+  addMaintenance: (id, maintenanceData) => api.post(`/assets/${id}/maintenance`, maintenanceData),
+  getMaintenanceHistory: (id) => api.get(`/assets/${id}/maintenance`),
+  getMaintenanceDue: () => api.get('/assets/maintenance/due'),
 };
 
 // Employee API endpoints

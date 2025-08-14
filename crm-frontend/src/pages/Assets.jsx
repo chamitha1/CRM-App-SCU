@@ -57,32 +57,46 @@ const Assets = () => {
 
   const fetchAssets = async () => {
     try {
-      const response = await assetAPI.getAll();
-      setAssets(response.data);
+      const params = {
+        page: page + 1, // Backend uses 1-based pagination
+        limit: rowsPerPage
+      };
+      
+      const response = await assetAPI.getAll(params);
+      
+      if (response.data.success) {
+        setAssets(response.data.data);
+        // Update pagination info if provided
+        if (response.data.pagination) {
+          // Handle pagination metadata from backend
+        }
+      } else {
+        throw new Error(response.data.message || 'Failed to fetch assets');
+      }
     } catch (error) {
       console.error('Error fetching assets:', error);
-      // Mock data for development
+      // Mock data for development when backend is not available
       setAssets([
         {
-          id: 1,
+          _id: '1',
           name: 'Excavator CAT 320',
           type: 'Heavy Equipment',
           serialNumber: 'CAT320-2024-001',
           purchaseDate: '2024-01-10',
           purchasePrice: 150000,
-          location: 'Site A',
+          location: 'Construction Site A',
           status: 'available',
           assignedTo: 'Mike Johnson',
           lastMaintenance: '2024-01-15'
         },
         {
-          id: 2,
-          name: 'Crane 50 Ton',
+          _id: '2',
+          name: 'Crane 50 Ton Mobile',
           type: 'Lifting Equipment',
           serialNumber: 'CRANE50-2023-005',
           purchaseDate: '2023-06-15',
           purchasePrice: 250000,
-          location: 'Site B',
+          location: 'Construction Site B',
           status: 'in-use',
           assignedTo: 'John Smith',
           lastMaintenance: '2024-01-20'
@@ -131,7 +145,7 @@ const Assets = () => {
   const handleSubmit = async () => {
     try {
       if (editingAsset) {
-        await assetAPI.update(editingAsset.id, formData);
+        await assetAPI.update(editingAsset._id || editingAsset.id, formData);
         toast.success('Asset updated successfully');
       } else {
         await assetAPI.create(formData);
@@ -193,7 +207,7 @@ const Assets = () => {
               {assets
                 .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 .map((asset) => (
-                  <TableRow key={asset.id}>
+                  <TableRow key={asset._id || asset.id}>
                     <TableCell>{asset.name}</TableCell>
                     <TableCell>{asset.type}</TableCell>
                     <TableCell>{asset.serialNumber}</TableCell>
@@ -212,7 +226,7 @@ const Assets = () => {
                       <IconButton onClick={() => handleEdit(asset)}>
                         <EditIcon />
                       </IconButton>
-                      <IconButton onClick={() => handleDelete(asset.id)}>
+                      <IconButton onClick={() => handleDelete(asset._id || asset.id)}>
                         <DeleteIcon />
                       </IconButton>
                     </TableCell>
