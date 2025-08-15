@@ -67,7 +67,7 @@ const RegisterForm = () => {
       ...prev,
       [name]: value
     }));
-    
+
     // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
@@ -79,7 +79,7 @@ const RegisterForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -88,7 +88,7 @@ const RegisterForm = () => {
     try {
       const { confirmPassword, ...registerData } = formData;
       await authAPI.register(registerData);
-      
+
       toast.success('Registration successful! Please log in.');
       navigate('/login');
     } catch (error) {

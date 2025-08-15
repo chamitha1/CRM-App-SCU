@@ -5,7 +5,6 @@ import {
   Button,
   Typography,
   Paper,
-  Alert,
   CircularProgress,
   Link
 } from '@mui/material';
@@ -49,7 +48,7 @@ const LoginForm = () => {
       ...prev,
       [name]: value
     }));
-    
+
     // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
@@ -61,7 +60,7 @@ const LoginForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -70,7 +69,7 @@ const LoginForm = () => {
     try {
       const response = await authAPI.login(formData);
       const result = login(response.data.token);
-      
+
       if (result.success) {
         toast.success('Login successful!');
         navigate('/dashboard');

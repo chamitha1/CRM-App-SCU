@@ -65,9 +65,11 @@ const Sidebar = ({ open, onToggle }) => {
         <Typography variant="h6" color="primary">
           Construction CRM
         </Typography>
-        <IconButton onClick={onToggle}>
-          <ChevronLeftIcon />
-        </IconButton>
+        {isMobile && (
+          <IconButton onClick={onToggle}>
+            <ChevronLeftIcon />
+          </IconButton>
+        )}
       </Box>
 
       {/* Navigation Menu */}
@@ -135,21 +137,15 @@ const Sidebar = ({ open, onToggle }) => {
 
   return (
     <Drawer
-      variant="persistent"
-      open={open}
+      variant="permanent"
       sx={{
         display: { xs: 'none', md: 'block' },
         '& .MuiDrawer-paper': {
           boxSizing: 'border-box',
           width: drawerWidth,
-          position: 'fixed',
-          height: '100%',
-          transition: theme.transitions.create('width', {
-            easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.enteringScreen,
-          }),
         },
       }}
+      open
     >
       {drawerContent}
     </Drawer>

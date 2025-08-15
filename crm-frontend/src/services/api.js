@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create axios instance with base configuration
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:3001/api',
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5001/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -92,11 +92,26 @@ export const employeeAPI = {
 
 // Reports API endpoints
 export const reportsAPI = {
+  // Dashboard and analytics
   getDashboardStats: () => api.get('/reports/dashboard'),
   getLeadConversions: () => api.get('/reports/lead-conversions'),
   getRevenueTrend: () => api.get('/reports/revenue-trend'),
   getCustomerStats: () => api.get('/reports/customers'),
   getAssetStats: () => api.get('/reports/assets'),
+
+  // Report management CRUD
+  getAll: (params) => api.get('/reports', { params }),
+  getById: (id) => api.get(`/reports/${id}`),
+  create: (reportData) => api.post('/reports', reportData),
+  update: (id, reportData) => api.put(`/reports/${id}`, reportData),
+  delete: (id) => api.delete(`/reports/${id}`),
+  updateStatus: (id, status) => api.patch(`/reports/${id}/status`, { status }),
+
+  // Public reports
+  getPublic: () => api.get('/reports/public'),
+
+  // Statistics
+  getStats: () => api.get('/reports/stats/overview'),
 };
 
 export default api; 

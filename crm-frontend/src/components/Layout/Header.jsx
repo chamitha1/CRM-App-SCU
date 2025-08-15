@@ -21,7 +21,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
-const Header = ({ onMenuToggle, sidebarOpen }) => {
+const Header = ({ onMenuToggle }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { user, logout } = useAuth();
@@ -56,32 +56,24 @@ const Header = ({ onMenuToggle, sidebarOpen }) => {
     <AppBar
       position="fixed"
       sx={{
-        width: { 
-          xs: '100%',
-          md: sidebarOpen ? `calc(100% - ${240}px)` : '100%'
-        },
-        ml: { 
-          xs: 0,
-          md: sidebarOpen ? `${240}px` : 0
-        },
+        width: { md: `calc(100% - ${240}px)` },
+        ml: { md: `${240}px` },
         zIndex: theme.zIndex.drawer + 1,
-        transition: theme.transitions.create(['margin', 'width'], {
-          easing: theme.transitions.easing.sharp,
-          duration: theme.transitions.duration.leavingScreen,
-        }),
       }}
     >
       <Toolbar>
-        {/* Menu Toggle Button */}
-        <IconButton
-          color="inherit"
-          aria-label="toggle sidebar"
-          edge="start"
-          onClick={onMenuToggle}
-          sx={{ mr: 2 }}
-        >
-          <MenuIcon />
-        </IconButton>
+        {/* Mobile Menu Button */}
+        {isMobile && (
+          <IconButton
+            color="inherit"
+            aria-label="open drawer"
+            edge="start"
+            onClick={onMenuToggle}
+            sx={{ mr: 2 }}
+          >
+            <MenuIcon />
+          </IconButton>
+        )}
 
         {/* Title */}
         <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>

@@ -21,9 +21,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Chip,
-  Alert,
-  AlertTitle
+  Chip
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -43,17 +41,13 @@ const Appointments = () => {
   const [editingAppointment, setEditingAppointment] = useState(null);
   const [formData, setFormData] = useState({
     title: '',
-    description: '',
-    startDate: '',
-    endDate: '',
-    location: '',
-    type: 'meeting',
-    status: 'scheduled',
-    priority: 'medium',
+    customerName: '',
+    date: '',
+    time: '',
+    duration: '',
+    type: '',
     notes: '',
-    attendees: [],
-    customerId: null,
-    leadId: null
+    status: 'scheduled'
   });
 
   useEffect(() => {
@@ -66,12 +60,7 @@ const Appointments = () => {
       setAppointments(response.data);
     } catch (error) {
       console.error('Error fetching appointments:', error);
-      if (error.response?.status === 401) {
-        toast.error('Please log in to access appointments');
-        // User will be redirected to login by the API interceptor
-        return;
-      }
-      // Mock data for development when not authenticated
+      // Mock data for development
       setAppointments([
         {
           id: 1,
@@ -105,38 +94,20 @@ const Appointments = () => {
     setEditingAppointment(null);
     setFormData({
       title: '',
-      description: '',
-      startDate: '',
-      endDate: '',
-      location: '',
-      type: 'meeting',
-      status: 'scheduled',
-      priority: 'medium',
+      customerName: '',
+      date: '',
+      time: '',
+      duration: '',
+      type: '',
       notes: '',
-      attendees: [],
-      customerId: null,
-      leadId: null
+      status: 'scheduled'
     });
     setDialogOpen(true);
   };
 
   const handleEdit = (appointment) => {
     setEditingAppointment(appointment);
-    // Convert backend data to form format
-    setFormData({
-      title: appointment.title || '',
-      description: appointment.description || '',
-      startDate: appointment.startDate ? appointment.startDate.slice(0, 16) : '',
-      endDate: appointment.endDate ? appointment.endDate.slice(0, 16) : '',
-      location: appointment.location || '',
-      type: appointment.type || 'meeting',
-      status: appointment.status || 'scheduled',
-      priority: appointment.priority || 'medium',
-      notes: appointment.notes || '',
-      attendees: appointment.attendees || [],
-      customerId: appointment.customerId || null,
-      leadId: appointment.leadId || null
-    });
+    setFormData(appointment);
     setDialogOpen(true);
   };
 
@@ -155,67 +126,18 @@ const Appointments = () => {
 
   const handleSubmit = async () => {
     try {
-      // Validate required fields
-      if (!formData.title.trim()) {
-        toast.error('Title is required');
-        return;
-      }
-      if (!formData.startDate) {
-        toast.error('Start date and time is required');
-        return;
-      }
-      if (!formData.endDate) {
-        toast.error('End date and time is required');
-        return;
-      }
-      
-      // Check if end date is after start date
-      if (new Date(formData.endDate) <= new Date(formData.startDate)) {
-        toast.error('End date must be after start date');
-        return;
-      }
-
-      // Prepare the appointment data for backend
-      const appointmentData = {
-        title: formData.title.trim(),
-        description: formData.description ? formData.description.trim() : undefined,
-        startDate: new Date(formData.startDate).toISOString(),
-        endDate: new Date(formData.endDate).toISOString(),
-        location: formData.location ? formData.location.trim() : undefined,
-        type: formData.type,
-        status: formData.status,
-        priority: formData.priority,
-        notes: formData.notes ? formData.notes.trim() : undefined,
-        attendees: formData.attendees,
-        customerId: formData.customerId || undefined,
-        leadId: formData.leadId || undefined
-      };
-
-      // Remove undefined fields to avoid sending them
-      Object.keys(appointmentData).forEach(key => {
-        if (appointmentData[key] === undefined) {
-          delete appointmentData[key];
-        }
-      });
-
-      console.log('Sending appointment data:', appointmentData);
-
       if (editingAppointment) {
-        await appointmentAPI.update(editingAppointment._id || editingAppointment.id, appointmentData);
+        await appointmentAPI.update(editingAppointment.id, formData);
         toast.success('Appointment updated successfully');
       } else {
-        await appointmentAPI.create(appointmentData);
+        await appointmentAPI.create(formData);
         toast.success('Appointment created successfully');
       }
       setDialogOpen(false);
       fetchAppointments();
     } catch (error) {
       console.error('Error saving appointment:', error);
-      if (error.response?.data?.message) {
-        toast.error(`Failed to save appointment: ${error.response.data.message}`);
-      } else {
-        toast.error('Failed to save appointment');
-      }
+      toast.error('Failed to save appointment');
     }
   };
 
@@ -233,9 +155,6 @@ const Appointments = () => {
     return <Spinner message="Loading appointments..." />;
   }
 
-  // Check if user is authenticated
-  const isAuthenticated = localStorage.getItem('token');
-
   return (
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
@@ -249,16 +168,6 @@ const Appointments = () => {
         </Button>
       </Box>
 
-      {/* Authentication Status Alert */}
-      {!isAuthenticated && (
-        <Alert severity="warning" sx={{ mb: 2 }}>
-          <AlertTitle>Authentication Required</AlertTitle>
-          You need to log in to create, edit, or delete appointments. Currently displaying sample data.
-          <br />
-          Test credentials: email: <strong>test@example.com</strong>, password: <strong>testpassword</strong>
-        </Alert>
-      )}
-
       {/* Appointments Table */}
       <Paper>
         <TableContainer>
@@ -266,12 +175,11 @@ const Appointments = () => {
             <TableHead>
               <TableRow>
                 <TableCell>Title</TableCell>
-                <TableCell>Description</TableCell>
-                <TableCell>Start Date</TableCell>
-                <TableCell>End Date</TableCell>
-                <TableCell>Location</TableCell>
+                <TableCell>Customer</TableCell>
+                <TableCell>Date</TableCell>
+                <TableCell>Time</TableCell>
+                <TableCell>Duration</TableCell>
                 <TableCell>Type</TableCell>
-                <TableCell>Priority</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell>Actions</TableCell>
               </TableRow>
@@ -280,32 +188,13 @@ const Appointments = () => {
               {appointments
                 .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 .map((appointment) => (
-                  <TableRow key={appointment._id || appointment.id}>
+                  <TableRow key={appointment.id}>
                     <TableCell>{appointment.title}</TableCell>
-                    <TableCell>{appointment.description || '-'}</TableCell>
-                    <TableCell>
-                      {appointment.startDate
-                        ? new Date(appointment.startDate).toLocaleString()
-                        : appointment.date
-                        ? new Date(appointment.date).toLocaleDateString()
-                        : '-'
-                      }
-                    </TableCell>
-                    <TableCell>
-                      {appointment.endDate
-                        ? new Date(appointment.endDate).toLocaleString()
-                        : appointment.time || '-'
-                      }
-                    </TableCell>
-                    <TableCell>{appointment.location || '-'}</TableCell>
+                    <TableCell>{appointment.customerName}</TableCell>
+                    <TableCell>{new Date(appointment.date).toLocaleDateString()}</TableCell>
+                    <TableCell>{appointment.time}</TableCell>
+                    <TableCell>{appointment.duration}</TableCell>
                     <TableCell>{appointment.type}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={appointment.priority}
-                        color={appointment.priority === 'high' ? 'error' : appointment.priority === 'medium' ? 'warning' : 'default'}
-                        size="small"
-                      />
-                    </TableCell>
                     <TableCell>
                       <Chip
                         label={appointment.status}
@@ -317,7 +206,7 @@ const Appointments = () => {
                       <IconButton onClick={() => handleEdit(appointment)}>
                         <EditIcon />
                       </IconButton>
-                      <IconButton onClick={() => handleDelete(appointment._id || appointment.id)}>
+                      <IconButton onClick={() => handleDelete(appointment.id)}>
                         <DeleteIcon />
                       </IconButton>
                     </TableCell>
@@ -352,36 +241,33 @@ const Appointments = () => {
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               fullWidth
-              required
             />
             <TextField
-              label="Description"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              label="Customer Name"
+              value={formData.customerName}
+              onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
               fullWidth
             />
             <TextField
-              label="Start Date & Time"
-              type="datetime-local"
-              value={formData.startDate}
-              onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+              label="Date"
+              type="date"
+              value={formData.date}
+              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
               fullWidth
-              required
               InputLabelProps={{ shrink: true }}
             />
             <TextField
-              label="End Date & Time"
-              type="datetime-local"
-              value={formData.endDate}
-              onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+              label="Time"
+              type="time"
+              value={formData.time}
+              onChange={(e) => setFormData({ ...formData, time: e.target.value })}
               fullWidth
-              required
               InputLabelProps={{ shrink: true }}
             />
             <TextField
-              label="Location"
-              value={formData.location}
-              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+              label="Duration"
+              value={formData.duration}
+              onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
               fullWidth
             />
             <FormControl fullWidth>
@@ -391,11 +277,10 @@ const Appointments = () => {
                 label="Type"
                 onChange={(e) => setFormData({ ...formData, type: e.target.value })}
               >
-                <MenuItem value="meeting">Meeting</MenuItem>
-                <MenuItem value="call">Call</MenuItem>
-                <MenuItem value="presentation">Presentation</MenuItem>
-                <MenuItem value="follow_up">Follow Up</MenuItem>
-                <MenuItem value="other">Other</MenuItem>
+                <MenuItem value="Meeting">Meeting</MenuItem>
+                <MenuItem value="Site Visit">Site Visit</MenuItem>
+                <MenuItem value="Consultation">Consultation</MenuItem>
+                <MenuItem value="Follow-up">Follow-up</MenuItem>
               </Select>
             </FormControl>
             <FormControl fullWidth>
@@ -406,21 +291,9 @@ const Appointments = () => {
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
               >
                 <MenuItem value="scheduled">Scheduled</MenuItem>
+                <MenuItem value="confirmed">Confirmed</MenuItem>
                 <MenuItem value="completed">Completed</MenuItem>
                 <MenuItem value="cancelled">Cancelled</MenuItem>
-                <MenuItem value="rescheduled">Rescheduled</MenuItem>
-              </Select>
-            </FormControl>
-            <FormControl fullWidth>
-              <InputLabel>Priority</InputLabel>
-              <Select
-                value={formData.priority}
-                label="Priority"
-                onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-              >
-                <MenuItem value="low">Low</MenuItem>
-                <MenuItem value="medium">Medium</MenuItem>
-                <MenuItem value="high">High</MenuItem>
               </Select>
             </FormControl>
             <TextField

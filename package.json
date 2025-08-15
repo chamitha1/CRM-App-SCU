@@ -1,4 +1,16 @@
 {
+  "name": "crm-app",
+  "version": "1.0.0",
+  "description": "Construction CRM Application",
+  "main": "index.js",
+  "scripts": {
+    "start": "node crm-backend/server.js",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "nodemon crm-backend/server.js",
+    "client": "cd crm-frontend && npm start",
+    "build": "cd crm-frontend && npm run build",
+    "install-all": "npm install && cd crm-frontend && npm install"
+  },
   "dependencies": {
     "@mui/icons-material": "^7.2.0",
     "bcryptjs": "^3.0.2",
@@ -11,5 +23,9 @@
     "jwt-decode": "^4.0.0",
     "mongoose": "^8.16.4",
     "morgan": "^1.10.1"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "nodemon": "^3.1.10"
   }
 }

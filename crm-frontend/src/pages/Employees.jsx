@@ -21,9 +21,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Chip,
-  Alert,
-  AlertTitle
+  Chip
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -58,24 +56,35 @@ const Employees = () => {
 
   const fetchEmployees = async () => {
     try {
-      console.log('Fetching employees...');
       const response = await employeeAPI.getAll();
-      console.log('Employees response:', response);
-      console.log('Employees data:', response.data);
       setEmployees(response.data);
     } catch (error) {
       console.error('Error fetching employees:', error);
-      console.log('Error response:', error.response);
-      
-      if (error.response?.status === 401) {
-        // Authentication error
-        setEmployees([]);
-        console.log('Authentication required to fetch employees');
-      } else {
-        // Other errors - show empty list and let user know
-        setEmployees([]);
-        toast.error('Failed to load employees. Please check your connection.');
-      }
+      // Mock data for development
+      setEmployees([
+        {
+          id: 1,
+          name: 'John Manager',
+          email: 'john.manager@company.com',
+          phone: '(555) 123-4567',
+          role: 'manager',
+          department: 'Operations',
+          hireDate: '2023-01-15',
+          salary: 75000,
+          status: 'active'
+        },
+        {
+          id: 2,
+          name: 'Sarah Worker',
+          email: 'sarah.worker@company.com',
+          phone: '(555) 987-6543',
+          role: 'employee',
+          department: 'Construction',
+          hireDate: '2023-03-20',
+          salary: 55000,
+          status: 'active'
+        }
+      ]);
     } finally {
       setLoading(false);
     }
@@ -98,17 +107,7 @@ const Employees = () => {
 
   const handleEdit = (employee) => {
     setEditingEmployee(employee);
-    // Convert backend data to form format
-    setFormData({
-      name: employee.name || '',
-      email: employee.email || '',
-      phone: employee.phone || '',
-      role: employee.role || 'employee',
-      department: employee.department || '',
-      hireDate: employee.hireDate ? employee.hireDate.slice(0, 10) : '',
-      salary: employee.salary || '',
-      status: employee.status || 'active'
-    });
+    setFormData(employee);
     setDialogOpen(true);
   };
 
@@ -120,70 +119,25 @@ const Employees = () => {
         fetchEmployees();
       } catch (error) {
         console.error('Error deleting employee:', error);
-        if (error.response?.data?.message) {
-          toast.error(`Failed to delete employee: ${error.response.data.message}`);
-        } else {
-          toast.error('Failed to delete employee');
-        }
+        toast.error('Failed to delete employee');
       }
     }
   };
 
   const handleSubmit = async () => {
     try {
-      // Validate required fields
-      if (!formData.name.trim()) {
-        toast.error('Employee name is required');
-        return;
-      }
-      if (!formData.email.trim()) {
-        toast.error('Email is required');
-        return;
-      }
-
-      // Prepare employee data for backend
-      const employeeData = {
-        name: formData.name.trim(),
-        email: formData.email.trim(),
-        phone: formData.phone ? formData.phone.trim() : undefined,
-        role: formData.role,
-        department: formData.department ? formData.department.trim() : undefined,
-        hireDate: formData.hireDate || undefined,
-        salary: formData.salary ? parseFloat(formData.salary) : undefined,
-        status: formData.status
-      };
-
-      // Remove undefined fields
-      Object.keys(employeeData).forEach(key => {
-        if (employeeData[key] === undefined) {
-          delete employeeData[key];
-        }
-      });
-
-      console.log('Sending employee data:', employeeData);
-
-      let result;
       if (editingEmployee) {
-        console.log('Updating employee with ID:', editingEmployee._id || editingEmployee.id);
-        result = await employeeAPI.update(editingEmployee._id || editingEmployee.id, employeeData);
-        console.log('Update result:', result);
+        await employeeAPI.update(editingEmployee.id, formData);
         toast.success('Employee updated successfully');
       } else {
-        console.log('Creating new employee...');
-        result = await employeeAPI.create(employeeData);
-        console.log('Create result:', result);
+        await employeeAPI.create(formData);
         toast.success('Employee created successfully');
       }
       setDialogOpen(false);
-      console.log('Refreshing employee list...');
       fetchEmployees();
     } catch (error) {
       console.error('Error saving employee:', error);
-      if (error.response?.data?.message) {
-        toast.error(`Failed to save employee: ${error.response.data.message}`);
-      } else {
-        toast.error('Failed to save employee');
-      }
+      toast.error('Failed to save employee');
     }
   };
 
@@ -208,9 +162,6 @@ const Employees = () => {
     return <Spinner message="Loading employees..." />;
   }
 
-  // Check if user is authenticated
-  const isAuthenticated = localStorage.getItem('token');
-
   return (
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
@@ -223,16 +174,6 @@ const Employees = () => {
           Add Employee
         </Button>
       </Box>
-
-      {/* Authentication Status Alert */}
-      {!isAuthenticated && (
-        <Alert severity="warning" sx={{ mb: 2 }}>
-          <AlertTitle>Authentication Required</AlertTitle>
-          You need to log in to view, create, edit, or delete employees.
-          <br />
-          Test credentials: email: <strong>test@example.com</strong>, password: <strong>testpassword</strong>
-        </Alert>
-      )}
 
       {/* Employees Table */}
       <Paper>
@@ -255,10 +196,10 @@ const Employees = () => {
               {employees
                 .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 .map((employee) => (
-                  <TableRow key={employee._id || employee.id}>
+                  <TableRow key={employee.id}>
                     <TableCell>{employee.name}</TableCell>
                     <TableCell>{employee.email}</TableCell>
-                    <TableCell>{employee.phone || '-'}</TableCell>
+                    <TableCell>{employee.phone}</TableCell>
                     <TableCell>
                       <Chip
                         label={employee.role}
@@ -266,19 +207,9 @@ const Employees = () => {
                         size="small"
                       />
                     </TableCell>
-                    <TableCell>{employee.department || '-'}</TableCell>
-                    <TableCell>
-                      {employee.hireDate 
-                        ? new Date(employee.hireDate).toLocaleDateString() 
-                        : '-'
-                      }
-                    </TableCell>
-                    <TableCell>
-                      {employee.salary 
-                        ? `$${employee.salary.toLocaleString()}` 
-                        : '-'
-                      }
-                    </TableCell>
+                    <TableCell>{employee.department}</TableCell>
+                    <TableCell>{new Date(employee.hireDate).toLocaleDateString()}</TableCell>
+                    <TableCell>${employee.salary?.toLocaleString()}</TableCell>
                     <TableCell>
                       <Chip
                         label={employee.status}
@@ -290,7 +221,7 @@ const Employees = () => {
                       <IconButton onClick={() => handleEdit(employee)}>
                         <EditIcon />
                       </IconButton>
-                      <IconButton onClick={() => handleDelete(employee._id || employee.id)}>
+                      <IconButton onClick={() => handleDelete(employee.id)}>
                         <DeleteIcon />
                       </IconButton>
                     </TableCell>
