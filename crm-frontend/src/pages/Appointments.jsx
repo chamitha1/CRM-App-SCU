@@ -1,16 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Typography,
   Button,
   Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TablePagination,
   IconButton,
   TextField,
   Dialog,
@@ -33,12 +26,16 @@ import {
 import { appointmentAPI } from '../services/api';
 import Spinner from '../components/Common/Spinner';
 import { toast } from 'react-toastify';
+import {
+  Calendar,
+  dateFnsLocalizer
+} from 'react-big-calendar';
+import { format, parse, startOfWeek, getDay } from 'date-fns';
+import 'react-big-calendar/lib/css/react-big-calendar.css';
 
 const Appointments = () => {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState(null);
   const [formData, setFormData] = useState({
@@ -219,14 +216,68 @@ const Appointments = () => {
     }
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'scheduled': return 'info';
-      case 'confirmed': return 'success';
-      case 'completed': return 'default';
-      case 'cancelled': return 'error';
-      default: return 'default';
-    }
+  // Calendar localizer
+  const locales = {};
+  const localizer = useMemo(() => dateFnsLocalizer({
+    format,
+    parse,
+    startOfWeek,
+    getDay,
+    locales
+  }), []);
+
+  // Transform appointments into calendar events
+  const events = useMemo(() => {
+    return appointments.map((a) => ({
+      id: a._id || a.id,
+      title: a.title,
+      start: a.startDate ? new Date(a.startDate) : (a.date ? new Date(a.date) : new Date()),
+      end: a.endDate ? new Date(a.endDate) : (a.time ? new Date(a.time) : new Date()),
+      resource: a
+    }));
+  }, [appointments]);
+
+  const eventPropGetter = (event) => {
+    const now = new Date();
+    const status = event.resource?.status || 'scheduled';
+    let backgroundColor = '#4caf50'; // upcoming = green
+    if (status === 'completed') backgroundColor = '#2196f3'; // blue
+    else if (status === 'cancelled') backgroundColor = '#9e9e9e'; // grey
+    else if (event.end < now && status !== 'completed') backgroundColor = '#f44336'; // missed = red
+    return {
+      style: {
+        backgroundColor,
+        borderRadius: 6,
+        opacity: 0.9,
+        color: '#fff',
+        border: 'none'
+      }
+    };
+  };
+
+  const handleSelectEvent = (event) => {
+    const appointment = event.resource;
+    handleEdit(appointment);
+  };
+
+  const handleSelectSlot = ({ start, end }) => {
+    setEditingAppointment(null);
+    setFormData((prev) => ({
+      ...prev,
+      title: '',
+      description: '',
+      startDate: start ? new Date(start).toISOString().slice(0, 16) : '',
+      endDate: end ? new Date(end).toISOString().slice(0, 16) : '',
+      location: '',
+      type: 'meeting',
+      status: 'scheduled',
+      priority: 'medium',
+      notes: '',
+      attendees: [],
+      customerId: null,
+      leadId: null
+    }));
+    setDialogOpen(true);
   };
 
   if (loading) {
@@ -259,84 +310,20 @@ const Appointments = () => {
         </Alert>
       )}
 
-      {/* Appointments Table */}
-      <Paper>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Title</TableCell>
-                <TableCell>Description</TableCell>
-                <TableCell>Start Date</TableCell>
-                <TableCell>End Date</TableCell>
-                <TableCell>Location</TableCell>
-                <TableCell>Type</TableCell>
-                <TableCell>Priority</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {appointments
-                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((appointment) => (
-                  <TableRow key={appointment._id || appointment.id}>
-                    <TableCell>{appointment.title}</TableCell>
-                    <TableCell>{appointment.description || '-'}</TableCell>
-                    <TableCell>
-                      {appointment.startDate
-                        ? new Date(appointment.startDate).toLocaleString()
-                        : appointment.date
-                        ? new Date(appointment.date).toLocaleDateString()
-                        : '-'
-                      }
-                    </TableCell>
-                    <TableCell>
-                      {appointment.endDate
-                        ? new Date(appointment.endDate).toLocaleString()
-                        : appointment.time || '-'
-                      }
-                    </TableCell>
-                    <TableCell>{appointment.location || '-'}</TableCell>
-                    <TableCell>{appointment.type}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={appointment.priority}
-                        color={appointment.priority === 'high' ? 'error' : appointment.priority === 'medium' ? 'warning' : 'default'}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={appointment.status}
-                        color={getStatusColor(appointment.status)}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <IconButton onClick={() => handleEdit(appointment)}>
-                        <EditIcon />
-                      </IconButton>
-                      <IconButton onClick={() => handleDelete(appointment._id || appointment.id)}>
-                        <DeleteIcon />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25]}
-          component="div"
-          count={appointments.length}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={(event, newPage) => setPage(newPage)}
-          onRowsPerPageChange={(event) => {
-            setRowsPerPage(parseInt(event.target.value, 10));
-            setPage(0);
-          }}
+      {/* Calendar View */}
+      <Paper sx={{ p: 1 }}>
+        <Calendar
+          localizer={localizer}
+          events={events}
+          startAccessor="start"
+          endAccessor="end"
+          style={{ height: '70vh' }}
+          views={['month', 'week']}
+          defaultView="month"
+          selectable
+          onSelectEvent={handleSelectEvent}
+          onSelectSlot={handleSelectSlot}
+          eventPropGetter={eventPropGetter}
         />
       </Paper>
 

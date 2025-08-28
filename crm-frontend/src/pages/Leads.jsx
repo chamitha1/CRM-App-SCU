@@ -1,16 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Typography,
   Button,
   Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TablePagination,
   IconButton,
   TextField,
   Dialog,
@@ -22,7 +15,10 @@ import {
   Select,
   MenuItem,
   Chip,
-  Tooltip
+  Tooltip,
+  Grid,
+  Stack,
+  Divider
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -31,6 +27,7 @@ import {
   Search as SearchIcon,
   PersonAdd as ConvertIcon
 } from '@mui/icons-material';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { leadAPI } from '../services/api';
 import Spinner from '../components/Common/Spinner';
 import { toast } from 'react-toastify';
@@ -38,8 +35,6 @@ import { toast } from 'react-toastify';
 const Leads = () => {
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingLead, setEditingLead] = useState(null);
@@ -201,13 +196,72 @@ const Leads = () => {
            (lead.company || '').toLowerCase().includes(searchTerm.toLowerCase());
   });
 
-  const getStatusColor = (status) => {
+  // Kanban columns mapping to backend statuses
+  const columnOrder = ['new', 'contacted', 'negotiation', 'closed_won', 'closed_lost'];
+  const columnLabels = {
+    new: 'New',
+    contacted: 'Contacted',
+    negotiation: 'Negotiation',
+    closed_won: 'Won',
+    closed_lost: 'Lost'
+  };
+
+  // Map miscellaneous statuses into nearest column for display
+  const normalizeStatusForBoard = (status) => {
+    if (!status) return 'new';
+    if (status === 'proposal' || status === 'qualified') return 'negotiation';
+    return status;
+  };
+
+  const statusColor = (status) => {
     switch (status) {
       case 'new': return 'info';
       case 'contacted': return 'warning';
-      case 'qualified': return 'success';
-      case 'lost': return 'error';
+      case 'negotiation': return 'secondary';
+      case 'closed_won': return 'success';
+      case 'closed_lost': return 'error';
       default: return 'default';
+    }
+  };
+
+  const leadsByColumn = useMemo(() => {
+    const groups = {
+      new: [],
+      contacted: [],
+      negotiation: [],
+      closed_won: [],
+      closed_lost: []
+    };
+    filteredLeads.forEach((lead) => {
+      const col = normalizeStatusForBoard(lead.status);
+      if (groups[col]) groups[col].push(lead);
+      else groups.new.push(lead);
+    });
+    return groups;
+  }, [filteredLeads]);
+
+  const onDragEnd = async (result) => {
+    const { destination, source, draggableId } = result;
+    if (!destination) return;
+    const sourceCol = source.droppableId;
+    const destCol = destination.droppableId;
+    if (sourceCol === destCol && destination.index === source.index) return;
+
+    // Optimistic UI update
+    const leadId = draggableId;
+    const currentLead = leads.find(l => (l._id || String(l.id)) === leadId);
+    if (!currentLead) return;
+    const previousStatus = currentLead.status;
+    const newStatus = destCol;
+
+    try {
+      setLeads(prev => prev.map(l => (l._id || String(l.id)) === leadId ? { ...l, status: newStatus } : l));
+      await leadAPI.update(currentLead._id || currentLead.id, { status: newStatus });
+      toast.success('Lead status updated');
+    } catch (error) {
+      // Revert on error
+      setLeads(prev => prev.map(l => (l._id || String(l.id)) === leadId ? { ...l, status: previousStatus } : l));
+      toast.error('Failed to update lead status');
     }
   };
 
@@ -241,75 +295,83 @@ const Leads = () => {
         />
       </Paper>
 
-      {/* Leads Table */}
-      <Paper>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Name</TableCell>
-                <TableCell>Email</TableCell>
-                <TableCell>Phone</TableCell>
-                <TableCell>Company</TableCell>
-                <TableCell>Source</TableCell>
-                <TableCell>Estimated Value</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filteredLeads
-                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((lead) => (
-                  <TableRow key={lead._id || lead.id}>
-                    <TableCell>
-                      {lead.firstName && lead.lastName 
-                        ? `${lead.firstName} ${lead.lastName}` 
-                        : lead.name || 'N/A'}
-                    </TableCell>
-                    <TableCell>{lead.email}</TableCell>
-                    <TableCell>{lead.phone}</TableCell>
-                    <TableCell>{lead.company || 'N/A'}</TableCell>
-                    <TableCell>{lead.source}</TableCell>
-                    <TableCell>${(lead.value || lead.estimatedValue || 0).toLocaleString()}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={lead.status}
-                        color={getStatusColor(lead.status)}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Tooltip title="Convert to Customer">
-                        <IconButton onClick={() => handleConvert(lead)}>
-                          <ConvertIcon />
-                        </IconButton>
-                      </Tooltip>
-                      <IconButton onClick={() => handleEdit(lead)}>
-                        <EditIcon />
-                      </IconButton>
-                      <IconButton onClick={() => handleDelete(lead._id || lead.id)}>
-                        <DeleteIcon />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25]}
-          component="div"
-          count={filteredLeads.length}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={(event, newPage) => setPage(newPage)}
-          onRowsPerPageChange={(event) => {
-            setRowsPerPage(parseInt(event.target.value, 10));
-            setPage(0);
-          }}
-        />
-      </Paper>
+      {/* Kanban Board */}
+      <DragDropContext onDragEnd={onDragEnd}>
+        <Grid container spacing={2}>
+          {columnOrder.map((colKey) => (
+            <Grid item xs={12} sm={6} md={4} lg={2.4} key={colKey}>
+              <Paper sx={{ p: 2, height: '70vh', display: 'flex', flexDirection: 'column' }}>
+                <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
+                  <Typography variant="h6">{columnLabels[colKey]}</Typography>
+                  <Chip label={leadsByColumn[colKey]?.length || 0} size="small" />
+                </Box>
+                <Divider />
+                <Droppable droppableId={colKey}>
+                  {(provided, snapshot) => (
+                    <Box
+                      ref={provided.innerRef}
+                      {...provided.droppableProps}
+                      sx={{
+                        mt: 2,
+                        flexGrow: 1,
+                        overflowY: 'auto',
+                        bgcolor: snapshot.isDraggingOver ? 'action.hover' : 'transparent',
+                        borderRadius: 1,
+                        p: 0.5
+                      }}
+                    >
+                      <Stack spacing={1.5}>
+                        {(leadsByColumn[colKey] || []).map((lead, index) => {
+                          const id = lead._id || String(lead.id);
+                          const name = lead.firstName && lead.lastName ? `${lead.firstName} ${lead.lastName}` : (lead.name || 'N/A');
+                          const value = lead.value || lead.estimatedValue || 0;
+                          return (
+                            <Draggable draggableId={id} index={index} key={id}>
+                              {(dragProvided, dragSnapshot) => (
+                                <Paper
+                                  ref={dragProvided.innerRef}
+                                  {...dragProvided.draggableProps}
+                                  {...dragProvided.dragHandleProps}
+                                  elevation={dragSnapshot.isDragging ? 6 : 1}
+                                  sx={{ p: 1.5, cursor: 'grab' }}
+                                >
+                                  <Box display="flex" justifyContent="space-between" alignItems="center">
+                                    <Typography variant="subtitle1" fontWeight={600} noWrap>{name}</Typography>
+                                    <Chip label={columnLabels[normalizeStatusForBoard(lead.status)] || lead.status} color={statusColor(normalizeStatusForBoard(lead.status))} size="small" />
+                                  </Box>
+                                  <Typography variant="body2" color="text.secondary" noWrap>{lead.company || '-'}</Typography>
+                                  <Stack direction="row" spacing={1} alignItems="center" mt={1}>
+                                    <Chip label={lead.source || 'unknown'} size="small" variant="outlined" />
+                                    <Typography variant="caption" color="text.secondary">${value.toLocaleString()}</Typography>
+                                  </Stack>
+                                  <Stack direction="row" spacing={0.5} mt={1}>
+                                    <Tooltip title="Convert to Customer">
+                                      <IconButton size="small" onClick={() => handleConvert(lead)}>
+                                        <ConvertIcon fontSize="inherit" />
+                                      </IconButton>
+                                    </Tooltip>
+                                    <IconButton size="small" onClick={() => handleEdit(lead)}>
+                                      <EditIcon fontSize="inherit" />
+                                    </IconButton>
+                                    <IconButton size="small" onClick={() => handleDelete(lead._id || lead.id)}>
+                                      <DeleteIcon fontSize="inherit" />
+                                    </IconButton>
+                                  </Stack>
+                                </Paper>
+                              )}
+                            </Draggable>
+                          );
+                        })}
+                        {provided.placeholder}
+                      </Stack>
+                    </Box>
+                  )}
+                </Droppable>
+              </Paper>
+            </Grid>
+          ))}
+        </Grid>
+      </DragDropContext>
 
       {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="md" fullWidth>

@@ -59,13 +59,43 @@ const Sidebar = ({ open, onToggle }) => {
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: theme.spacing(2),
-          borderBottom: `1px solid ${theme.palette.divider}`,
+          background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+          color: 'white',
+          borderBottom: `1px solid rgba(255, 255, 255, 0.1)`,
+          position: 'relative',
+          overflow: 'hidden',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.1"%3E%3Ccircle cx="30" cy="30" r="2"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
+            opacity: 0.3,
+          }
         }}
       >
-        <Typography variant="h6" color="primary">
-          Construction CRM
+        <Typography 
+          variant="h6" 
+          sx={{ 
+            color: 'white',
+            fontWeight: 700,
+            textShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
+          }}
+        >
+          🏗️ CRM
         </Typography>
-        <IconButton onClick={onToggle}>
+        <IconButton 
+          onClick={onToggle}
+          sx={{ 
+            color: 'white',
+            '&:hover': {
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              transform: 'scale(1.1)',
+            }
+          }}
+        >
           <ChevronLeftIcon />
         </IconButton>
       </Box>
@@ -79,17 +109,28 @@ const Sidebar = ({ open, onToggle }) => {
                 selected={location.pathname === item.path}
                 onClick={() => handleNavigation(item.path)}
                 sx={{
+                  margin: '4px 8px',
+                  borderRadius: '12px',
+                  transition: 'all 0.3s ease-in-out',
+                  '&:hover': {
+                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                    transform: 'translateX(8px)',
+                  },
                   '&.Mui-selected': {
-                    backgroundColor: theme.palette.primary.light,
+                    background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                    color: 'white',
+                    boxShadow: '0 4px 15px rgba(99, 102, 241, 0.4)',
                     '&:hover': {
-                      backgroundColor: theme.palette.primary.light,
+                      background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+                      transform: 'translateX(8px)',
                     },
                   },
                 }}
               >
                 <ListItemIcon
                   sx={{
-                    color: location.pathname === item.path ? 'primary.main' : 'inherit',
+                    color: location.pathname === item.path ? 'white' : 'inherit',
+                    transition: 'all 0.3s ease-in-out',
                   }}
                 >
                   {item.icon}
@@ -98,7 +139,8 @@ const Sidebar = ({ open, onToggle }) => {
                   primary={item.text}
                   sx={{
                     '& .MuiListItemText-primary': {
-                      fontWeight: location.pathname === item.path ? 600 : 400,
+                      fontWeight: location.pathname === item.path ? 700 : 500,
+                      fontSize: '0.9rem',
                     },
                   }}
                 />
@@ -125,6 +167,9 @@ const Sidebar = ({ open, onToggle }) => {
           '& .MuiDrawer-paper': {
             boxSizing: 'border-box',
             width: drawerWidth,
+            background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
+            borderRight: '1px solid rgba(99, 102, 241, 0.1)',
+            boxShadow: '4px 0 20px rgba(0, 0, 0, 0.1)',
           },
         }}
       >
@@ -137,19 +182,22 @@ const Sidebar = ({ open, onToggle }) => {
     <Drawer
       variant="persistent"
       open={open}
-      sx={{
-        display: { xs: 'none', md: 'block' },
-        '& .MuiDrawer-paper': {
-          boxSizing: 'border-box',
-          width: drawerWidth,
-          position: 'fixed',
-          height: '100%',
-          transition: theme.transitions.create('width', {
-            easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.enteringScreen,
-          }),
-        },
-      }}
+              sx={{
+          display: { xs: 'none', md: 'block' },
+          '& .MuiDrawer-paper': {
+            boxSizing: 'border-box',
+            width: drawerWidth,
+            position: 'fixed',
+            height: '100%',
+            background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
+            borderRight: '1px solid rgba(99, 102, 241, 0.1)',
+            boxShadow: '4px 0 20px rgba(0, 0, 0, 0.1)',
+            transition: theme.transitions.create('width', {
+              easing: theme.transitions.easing.sharp,
+              duration: theme.transitions.duration.enteringScreen,
+            }),
+          },
+        }}
     >
       {drawerContent}
     </Drawer>

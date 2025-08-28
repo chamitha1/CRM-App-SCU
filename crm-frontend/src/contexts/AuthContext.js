@@ -58,6 +58,11 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  // Update user fields in context without requiring a new token
+  const updateUser = (partialUpdates) => {
+    setUser((prev) => (prev ? { ...prev, ...partialUpdates } : prev));
+  };
+
   // Check if user is authenticated
   const isAuthenticated = () => {
     return user !== null;
@@ -72,6 +77,7 @@ export const AuthProvider = ({ children }) => {
     user,
     login,
     logout,
+    updateUser,
     isAuthenticated,
     getUserRole,
     loading

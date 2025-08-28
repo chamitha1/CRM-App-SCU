@@ -21,7 +21,15 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Chip
+  Chip,
+  Drawer,
+  Tabs,
+  Tab,
+  Avatar,
+  Grid,
+  Stack,
+  Divider,
+  Tooltip
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -41,6 +49,9 @@ const Customers = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerTab, setDrawerTab] = useState(0);
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -150,6 +161,17 @@ const Customers = () => {
     setDialogOpen(true);
   };
 
+  const openDrawer = (customer) => {
+    setSelectedCustomer(customer);
+    setDrawerTab(0);
+    setDrawerOpen(true);
+  };
+
+  const closeDrawer = () => {
+    setDrawerOpen(false);
+    setSelectedCustomer(null);
+  };
+
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this customer?')) {
       try {
@@ -249,7 +271,7 @@ const Customers = () => {
               {filteredCustomers
                 .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 .map((customer) => (
-                  <TableRow key={customer._id || customer.id}>
+                  <TableRow key={customer._id || customer.id} hover onClick={() => openDrawer(customer)} sx={{ cursor: 'pointer' }}>
                     <TableCell>
                       {customer.firstName && customer.lastName 
                         ? `${customer.firstName} ${customer.lastName}` 
@@ -273,10 +295,10 @@ const Customers = () => {
                       />
                     </TableCell>
                     <TableCell>
-                      <IconButton onClick={() => handleEdit(customer)}>
+                      <IconButton onClick={(e) => { e.stopPropagation(); handleEdit(customer); }}>
                         <EditIcon />
                       </IconButton>
-                      <IconButton onClick={() => handleDelete(customer._id || customer.id)}>
+                      <IconButton onClick={(e) => { e.stopPropagation(); handleDelete(customer._id || customer.id); }}>
                         <DeleteIcon />
                       </IconButton>
                     </TableCell>
@@ -298,6 +320,114 @@ const Customers = () => {
           }}
         />
       </Paper>
+
+      {/* Side Drawer for Customer Details */}
+      <Drawer
+        anchor="right"
+        open={drawerOpen}
+        onClose={closeDrawer}
+        PaperProps={{ sx: { width: { xs: '100%', sm: 420 } } }}
+      >
+        {selectedCustomer && (
+          <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <Box sx={{ p: 2 }}>
+              <Stack direction="row" spacing={2} alignItems="center">
+                <Avatar>
+                  {(selectedCustomer.firstName?.[0] || selectedCustomer.name?.[0] || '?').toUpperCase()}
+                </Avatar>
+                <Box>
+                  <Typography variant="h6">
+                    {selectedCustomer.firstName && selectedCustomer.lastName
+                      ? `${selectedCustomer.firstName} ${selectedCustomer.lastName}`
+                      : selectedCustomer.name || 'N/A'}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">{selectedCustomer.company || '—'}</Typography>
+                </Box>
+              </Stack>
+            </Box>
+            <Divider />
+            <Tabs value={drawerTab} onChange={(e, v) => setDrawerTab(v)} variant="fullWidth">
+              <Tab label="Details" />
+              <Tab label="Activity" />
+              <Tab label="Actions" />
+            </Tabs>
+            <Divider />
+            <Box sx={{ p: 2, flexGrow: 1, overflowY: 'auto' }}>
+              {drawerTab === 0 && (
+                <Grid container spacing={2}>
+                  <Grid item xs={12}>
+                    <Typography variant="subtitle2" color="text.secondary">Contact</Typography>
+                    <Typography variant="body2">Email: {selectedCustomer.email}</Typography>
+                    <Typography variant="body2">Phone: {selectedCustomer.phone || '—'}</Typography>
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Typography variant="subtitle2" color="text.secondary">Address</Typography>
+                    <Typography variant="body2">
+                      {typeof selectedCustomer.address === 'string' && selectedCustomer.address}
+                      {typeof selectedCustomer.address === 'object' && selectedCustomer.address ? (
+                        `${selectedCustomer.address.street || ''} ${selectedCustomer.address.city || ''} ${selectedCustomer.address.state || ''} ${selectedCustomer.address.zipCode || ''} ${selectedCustomer.address.country || ''}`.trim() || '—'
+                      ) : ''}
+                      {!selectedCustomer.address && '—'}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Typography variant="subtitle2" color="text.secondary">Status & Tags</Typography>
+                    <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                      <Chip size="small" label={selectedCustomer.status} color={getStatusColor(selectedCustomer.status)} />
+                      {(selectedCustomer.tags || []).map((t) => (
+                        <Chip key={t} size="small" label={t} variant="outlined" />
+                      ))}
+                    </Stack>
+                  </Grid>
+                  {selectedCustomer.notes && (
+                    <Grid item xs={12}>
+                      <Typography variant="subtitle2" color="text.secondary">Notes</Typography>
+                      <Typography variant="body2">{selectedCustomer.notes}</Typography>
+                    </Grid>
+                  )}
+                </Grid>
+              )}
+
+              {drawerTab === 1 && (
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    Recent Activity
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Appointment and order timeline coming soon.
+                  </Typography>
+                </Box>
+              )}
+
+              {drawerTab === 2 && (
+                <Stack spacing={1}>
+                  <Tooltip title="Send email to customer">
+                    <Button variant="outlined" component="a" href={`mailto:${selectedCustomer.email}`}>
+                      Email
+                    </Button>
+                  </Tooltip>
+                  <Button variant="outlined" onClick={() => {
+                    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(selectedCustomer, null, 2));
+                    const dl = document.createElement('a');
+                    dl.setAttribute('href', dataStr);
+                    dl.setAttribute('download', `${(selectedCustomer.firstName || selectedCustomer.name || 'customer')}.json`);
+                    document.body.appendChild(dl);
+                    dl.click();
+                    dl.remove();
+                  }}>
+                    Download Details
+                  </Button>
+                  <Tooltip title="Open edit dialog">
+                    <Button variant="contained" onClick={() => { setDrawerOpen(false); handleEdit(selectedCustomer); }}>
+                      Edit Customer
+                    </Button>
+                  </Tooltip>
+                </Stack>
+              )}
+            </Box>
+          </Box>
+        )}
+      </Drawer>
 
       {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="md" fullWidth>

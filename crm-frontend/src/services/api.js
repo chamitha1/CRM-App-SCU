@@ -99,4 +99,13 @@ export const reportsAPI = {
   getAssetStats: () => api.get('/reports/assets'),
 };
 
+// User/Profile API endpoints
+export const userAPI = {
+  getProfile: () => api.get('/auth/me'),
+  updateProfile: (data) => api.put('/auth/me', data),
+  uploadAvatar: (formData) => api.post('/auth/me/avatar', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+};
+
 export default api; 
