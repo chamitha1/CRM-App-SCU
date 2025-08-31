@@ -3,6 +3,18 @@ const User = require('../models/User');
 
 const auth = async (req, res, next) => {
   try {
+    // Development mode - skip auth if JWT_SECRET is not set
+    if (!process.env.JWT_SECRET) {
+      console.log('Development mode: Skipping authentication');
+      // Create a mock user for development
+      req.user = {
+        id: '507f1f77bcf86cd799439011', // Mock ObjectId
+        name: 'Dev User',
+        email: 'dev@example.com'
+      };
+      return next();
+    }
+    
     const token = req.header('Authorization')?.replace('Bearer ', '');
     
     if (!token) {

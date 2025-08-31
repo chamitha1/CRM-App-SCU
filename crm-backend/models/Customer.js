@@ -36,7 +36,7 @@ const customerSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['active', 'inactive', 'prospect'],
+    enum: ['active', 'inactive', 'pending', 'prospect'],
     default: 'active'
   },
   tags: [String],

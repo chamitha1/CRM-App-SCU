@@ -83,27 +83,41 @@ const Customers = () => {
       // Mock data for development
       setCustomers([
         {
-          id: 1,
-          name: 'John Smith',
+          _id: '689efb64bc573f7232a10ed6',
+          firstName: 'John',
+          lastName: 'Smith',
           email: 'john@example.com',
           phone: '(555) 123-4567',
           company: 'Smith Construction',
-          address: '123 Main St, City, State',
+          address: {
+            street: '123 Main St',
+            city: 'Springfield',
+            state: 'IL',
+            zipCode: '62701',
+            country: 'USA'
+          },
           status: 'active',
-          projectType: 'Residential',
-          budget: 50000,
+          tags: ['VIP'],
+          notes: 'Long-term client',
           createdAt: '2024-01-15'
         },
         {
-          id: 2,
-          name: 'Jane Doe',
+          _id: '689efb64bc573f7232a10ed7',
+          firstName: 'Jane',
+          lastName: 'Doe',
           email: 'jane@example.com',
           phone: '(555) 987-6543',
           company: 'Doe Enterprises',
-          address: '456 Oak Ave, City, State',
+          address: {
+            street: '456 Oak Ave',
+            city: 'Springfield',
+            state: 'IL',
+            zipCode: '62702',
+            country: 'USA'
+          },
           status: 'pending',
-          projectType: 'Commercial',
-          budget: 150000,
+          tags: ['New Client'],
+          notes: 'Interested in commercial projects',
           createdAt: '2024-01-20'
         }
       ]);
@@ -137,10 +151,21 @@ const Customers = () => {
   const handleEdit = (customer) => {
     setEditingCustomer(customer);
     
+    // Handle legacy data format where name might exist instead of firstName/lastName
+    let firstName = customer.firstName || '';
+    let lastName = customer.lastName || '';
+    
+    // If no firstName/lastName but there's a name field, try to split it
+    if (!firstName && !lastName && customer.name) {
+      const nameParts = customer.name.split(' ');
+      firstName = nameParts[0] || '';
+      lastName = nameParts.slice(1).join(' ') || '';
+    }
+    
     // Convert customer data to form format
     const mappedFormData = {
-      firstName: customer.firstName || '',
-      lastName: customer.lastName || '',
+      firstName: firstName,
+      lastName: lastName,
       email: customer.email || '',
       phone: customer.phone || '',
       company: customer.company || '',
@@ -186,6 +211,24 @@ const Customers = () => {
   };
 
   const handleSubmit = async () => {
+    // Validate required fields
+    if (!formData.firstName.trim()) {
+      toast.error('First name is required');
+      return;
+    }
+    if (!formData.lastName.trim()) {
+      toast.error('Last name is required');
+      return;
+    }
+    if (!formData.email.trim()) {
+      toast.error('Email is required');
+      return;
+    }
+    if (!formData.phone.trim()) {
+      toast.error('Phone is required');
+      return;
+    }
+    
     try {
       if (editingCustomer) {
         const customerId = editingCustomer._id || editingCustomer.id;
@@ -219,6 +262,50 @@ const Customers = () => {
       case 'pending': return 'warning';
       case 'inactive': return 'error';
       default: return 'default';
+    }
+  };
+
+  const getNextStatus = (currentStatus) => {
+    switch (currentStatus) {
+      case 'active': return 'inactive';
+      case 'inactive': return 'pending';
+      case 'pending': return 'active';
+      default: return 'active';
+    }
+  };
+
+  const handleStatusChange = async (customer, event) => {
+    // Prevent triggering the row click event
+    event.stopPropagation();
+    
+    const nextStatus = getNextStatus(customer.status);
+    
+    try {
+      // Update the customer status via API
+      const customerId = customer._id || customer.id;
+      await customerAPI.update(customerId, { status: nextStatus });
+      
+      // Update the local state
+      setCustomers(prevCustomers => 
+        prevCustomers.map(c => 
+          (c._id || c.id) === customerId 
+            ? { ...c, status: nextStatus }
+            : c
+        )
+      );
+      
+      // Update the selectedCustomer state if it matches the updated customer
+      setSelectedCustomer(prevSelected => {
+        if (prevSelected && (prevSelected._id || prevSelected.id) === customerId) {
+          return { ...prevSelected, status: nextStatus };
+        }
+        return prevSelected;
+      });
+      
+      toast.success(`Customer status updated to ${nextStatus}`);
+    } catch (error) {
+      console.error('Error updating customer status:', error);
+      toast.error('Failed to update customer status');
     }
   };
 
@@ -288,11 +375,22 @@ const Customers = () => {
                       ) : 'N/A'}
                     </TableCell>
                     <TableCell>
-                      <Chip
-                        label={customer.status}
-                        color={getStatusColor(customer.status)}
-                        size="small"
-                      />
+                      <Tooltip title={`Click to change status from ${customer.status} to ${getNextStatus(customer.status)}`}>
+                        <Chip
+                          label={customer.status}
+                          color={getStatusColor(customer.status)}
+                          size="small"
+                          clickable
+                          onClick={(e) => handleStatusChange(customer, e)}
+                          sx={{ 
+                            cursor: 'pointer',
+                            '&:hover': {
+                              transform: 'scale(1.05)',
+                              transition: 'transform 0.2s ease-in-out'
+                            }
+                          }}
+                        />
+                      </Tooltip>
                     </TableCell>
                     <TableCell>
                       <IconButton onClick={(e) => { e.stopPropagation(); handleEdit(customer); }}>
@@ -373,7 +471,25 @@ const Customers = () => {
                   <Grid item xs={12}>
                     <Typography variant="subtitle2" color="text.secondary">Status & Tags</Typography>
                     <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-                      <Chip size="small" label={selectedCustomer.status} color={getStatusColor(selectedCustomer.status)} />
+                      <Tooltip title={`Click to change status from ${selectedCustomer.status} to ${getNextStatus(selectedCustomer.status)}`}>
+                        <Chip 
+                          size="small" 
+                          label={selectedCustomer.status} 
+                          color={getStatusColor(selectedCustomer.status)} 
+                          clickable
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStatusChange(selectedCustomer, e);
+                          }}
+                          sx={{ 
+                            cursor: 'pointer',
+                            '&:hover': {
+                              transform: 'scale(1.05)',
+                              transition: 'transform 0.2s ease-in-out'
+                            }
+                          }}
+                        />
+                      </Tooltip>
                       {(selectedCustomer.tags || []).map((t) => (
                         <Chip key={t} size="small" label={t} variant="outlined" />
                       ))}
@@ -480,6 +596,7 @@ const Customers = () => {
               >
                 <MenuItem value="active">Active</MenuItem>
                 <MenuItem value="inactive">Inactive</MenuItem>
+                <MenuItem value="pending">Pending</MenuItem>
                 <MenuItem value="prospect">Prospect</MenuItem>
               </Select>
             </FormControl>

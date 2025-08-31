@@ -21,7 +21,7 @@ import Leads from './pages/Leads';
 import Appointments from './pages/Appointments';
 import Assets from './pages/Assets';
 import Employees from './pages/Employees';
-import Reports from './pages/Reports';
+import DocumentManagement from './pages/DocumentManagement';
 import ProfilePage from './pages/ProfilePage';
 
 // Create theme
@@ -325,11 +325,11 @@ const AppContent = () => {
           }
         />
         <Route
-          path="/reports"
+          path="/documents"
           element={
             <ProtectedRoute>
               <Layout>
-                <Reports />
+                <DocumentManagement />
               </Layout>
             </ProtectedRoute>
           }

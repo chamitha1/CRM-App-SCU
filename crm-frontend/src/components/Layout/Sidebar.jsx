@@ -20,7 +20,7 @@ import {
   Event as EventIcon,
   Build as BuildIcon,
   Group as GroupIcon,
-  Assessment as AssessmentIcon,
+  Description as DocumentIcon,
   ChevronLeft as ChevronLeftIcon
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -34,7 +34,7 @@ const menuItems = [
   { text: 'Appointments', icon: <EventIcon />, path: '/appointments' },
   { text: 'Asset Management', icon: <BuildIcon />, path: '/assets' },
   { text: 'Employees', icon: <GroupIcon />, path: '/employees' },
-  { text: 'Reports', icon: <AssessmentIcon />, path: '/reports' },
+  { text: 'Document Management', icon: <DocumentIcon />, path: '/documents' },
 ];
 
 const Sidebar = ({ open, onToggle }) => {

@@ -2,11 +2,17 @@ require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const path = require('path');
+
+// Set default environment variables for development
+process.env.MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/crm-app';
+process.env.PORT = process.env.PORT || 5000;
+process.env.JWT_SECRET = process.env.JWT_SECRET || 'dev-jwt-secret-key-change-in-production';
 
 const authRoutes = require('./routes/auth');
 const customerRoutes = require('./routes/customers');
 const leadRoutes = require('./routes/leads');
-const reportRoutes = require('./routes/reports');
+const documentRoutes = require('./routes/documents');
 const appointmentRoutes = require('./routes/appointments');
 const assetRoutes = require('./routes/assets');
 const employeeRoutes = require('./routes/employees');
@@ -17,11 +23,14 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Serve uploaded files
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/leads', leadRoutes);
-app.use('/api/reports', reportRoutes);
+app.use('/api/documents', documentRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/assets', assetRoutes);
 app.use('/api/employees', employeeRoutes);

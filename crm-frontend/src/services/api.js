@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create axios instance with base configuration
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:3001/api',
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -90,7 +90,25 @@ export const employeeAPI = {
   delete: (id) => api.delete(`/employees/${id}`),
 };
 
-// Reports API endpoints
+// Documents API endpoints
+export const documentsAPI = {
+  getDocuments: (params) => api.get('/documents', { params }),
+  getDocument: (id) => api.get(`/documents/${id}`),
+  uploadDocument: (formData) => api.post('/documents/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  updateDocument: (id, data) => api.put(`/documents/${id}`, data),
+  updateDocumentFile: (id, formData) => api.put(`/documents/${id}/file`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  deleteDocument: (id) => api.delete(`/documents/${id}`),
+  downloadDocument: (id) => api.get(`/documents/download/${id}`, {
+    responseType: 'blob'
+  }),
+  getDocumentStats: () => api.get('/documents/stats/overview'),
+};
+
+// Reports API endpoints (keeping for backward compatibility)
 export const reportsAPI = {
   getDashboardStats: () => api.get('/reports/dashboard'),
   getLeadConversions: () => api.get('/reports/lead-conversions'),

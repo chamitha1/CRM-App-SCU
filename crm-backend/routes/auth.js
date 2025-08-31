@@ -11,15 +11,19 @@ const router = express.Router();
 router.post('/register', async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
+    console.log('Registration attempt:', { name, email, role });
+    
     const existingUser = await User.findOne({ email });
     if (existingUser) return res.status(400).json({ message: 'Email already exists' });
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = new User({ name, email, password: hashedPassword, role });
     await user.save();
-
+    
+    console.log('User registered successfully:', email);
     res.status(201).json({ message: 'User registered successfully' });
   } catch (err) {
+    console.error('Registration error:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -28,6 +32,22 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
+    
+    // Development mode: Create default user if no users exist
+    const userCount = await User.countDocuments();
+    if (userCount === 0) {
+      console.log('No users found. Creating default user for development...');
+      const hashedPassword = await bcrypt.hash('admin123', 10);
+      const defaultUser = new User({
+        name: 'Admin User',
+        email: 'admin@example.com',
+        password: hashedPassword,
+        role: 'admin'
+      });
+      await defaultUser.save();
+      console.log('Default user created: admin@example.com / admin123');
+    }
+    
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ message: 'Invalid credentials' });
 
@@ -44,6 +64,7 @@ router.post('/login', async (req, res) => {
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1d' });
     res.json({ token });
   } catch (err) {
+    console.error('Login error:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
