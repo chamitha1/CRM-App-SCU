@@ -32,6 +32,8 @@ import {
 } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
+import GenerateReportButton from '../components/reports/GenerateReportButton';
+import { getModuleData, buildPdf } from '../services/reportService';
 
 const Appointments = () => {
   const [appointments, setAppointments] = useState([]);
@@ -280,6 +282,17 @@ const Appointments = () => {
     setDialogOpen(true);
   };
 
+  const handleGenerateReport = async (reportParams) => {
+    try {
+      const data = await getModuleData('appointments', reportParams);
+      buildPdf('appointments', data, reportParams);
+    } catch (error) {
+      console.error('Error generating appointments report:', error);
+      toast.error('Failed to generate appointments report');
+      throw error; // Re-throw to let GenerateReportButton handle it
+    }
+  };
+
   if (loading) {
     return <Spinner message="Loading appointments..." />;
   }
@@ -291,13 +304,22 @@ const Appointments = () => {
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4">Appointment Scheduling</Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleAddNew}
-        >
-          Schedule Appointment
-        </Button>
+        <Box display="flex" gap={2}>
+          <GenerateReportButton
+            moduleKey="appointments"
+            moduleTitle="Appointments"
+            onGenerate={handleGenerateReport}
+            size="medium"
+            variant="outlined"
+          />
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleAddNew}
+          >
+            Schedule Appointment
+          </Button>
+        </Box>
       </Box>
 
       {/* Authentication Status Alert */}

@@ -3,10 +3,27 @@ const Asset = require('../models/Asset');
 const auth = require('../middleware/auth');
 const router = express.Router();
 
-// Get all assets
+// Get all assets with optional date filtering
 router.get('/', auth, async (req, res) => {
   try {
-    const assets = await Asset.find({})
+    const { from, to, allTime } = req.query;
+    let query = {};
+    
+    // Apply date filtering if not allTime
+    if (!allTime && from && to) {
+      const startOfDay = new Date(from);
+      startOfDay.setUTCHours(0, 0, 0, 0);
+      
+      const endOfDay = new Date(to);
+      endOfDay.setUTCHours(23, 59, 59, 999);
+      
+      query.createdAt = {
+        $gte: startOfDay,
+        $lte: endOfDay
+      };
+    }
+    
+    const assets = await Asset.find(query)
       .populate('createdBy', 'name email')
       .populate('assignedTo', 'name email')
       .populate('customerId', 'firstName lastName email')

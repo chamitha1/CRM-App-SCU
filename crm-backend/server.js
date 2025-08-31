@@ -16,11 +16,37 @@ const documentRoutes = require('./routes/documents');
 const appointmentRoutes = require('./routes/appointments');
 const assetRoutes = require('./routes/assets');
 const employeeRoutes = require('./routes/employees');
+const reportsRoutes = require('./routes/reports');
 const otherRoutes = require('./routes/other');
 
 const app = express();
 
-app.use(cors());
+// Add request logging middleware
+app.use((req, res, next) => {
+  console.log(`\ud83d\udd0d ${new Date().toISOString()} - ${req.method} ${req.url}`);
+  console.log('\ud83d\udd0d Headers:', req.headers);
+  if (req.body && Object.keys(req.body).length > 0) {
+    console.log('\ud83d\udd0d Body:', req.body);
+  }
+  next();
+});
+
+// CORS configuration with debugging
+const corsOptions = {
+  origin: function (origin, callback) {
+    console.log('\ud83d\udd0d CORS: Request origin:', origin);
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // Allow all origins in development
+    callback(null, true);
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Serve uploaded files
@@ -34,6 +60,7 @@ app.use('/api/documents', documentRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/assets', assetRoutes);
 app.use('/api/employees', employeeRoutes);
+app.use('/api/reports', reportsRoutes);
 app.use('/api', otherRoutes);
 
 // Basic route for testing

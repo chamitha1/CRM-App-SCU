@@ -31,6 +31,8 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { leadAPI } from '../services/api';
 import Spinner from '../components/Common/Spinner';
 import { toast } from 'react-toastify';
+import GenerateReportButton from '../components/reports/GenerateReportButton';
+import * as reportService from '../services/reportService';
 
 const Leads = () => {
   const [leads, setLeads] = useState([]);
@@ -265,6 +267,16 @@ const Leads = () => {
     }
   };
 
+  const handleGenerateReport = async (reportParams) => {
+    try {
+      const data = await reportService.getModuleData('leads', reportParams);
+      reportService.buildPdf('leads', data, reportParams);
+    } catch (error) {
+      console.error('Error generating leads report:', error);
+      throw error;
+    }
+  };
+
   if (loading) {
     return <Spinner message="Loading leads..." />;
   }
@@ -273,13 +285,20 @@ const Leads = () => {
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4">Lead Management</Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleAddNew}
-        >
-          Add Lead
-        </Button>
+        <Stack direction="row" spacing={2}>
+          <GenerateReportButton
+            moduleKey="leads"
+            moduleTitle="Leads"
+            onGenerate={handleGenerateReport}
+          />
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleAddNew}
+          >
+            Add Lead
+          </Button>
+        </Stack>
       </Box>
 
       {/* Search Bar */}

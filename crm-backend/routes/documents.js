@@ -124,7 +124,10 @@ router.get('/', auth, async (req, res) => {
       category,
       search,
       sortBy = 'uploadedAt',
-      sortOrder = 'desc'
+      sortOrder = 'desc',
+      from,
+      to,
+      allTime
     } = req.query;
 
     const query = { isActive: true };
@@ -137,6 +140,20 @@ router.get('/', auth, async (req, res) => {
     // Search filter
     if (search) {
       query.$text = { $search: search };
+    }
+    
+    // Date range filter
+    if (!allTime && from && to) {
+      const startOfDay = new Date(from);
+      startOfDay.setUTCHours(0, 0, 0, 0);
+      
+      const endOfDay = new Date(to);
+      endOfDay.setUTCHours(23, 59, 59, 999);
+      
+      query.uploadedAt = {
+        $gte: startOfDay,
+        $lte: endOfDay
+      };
     }
     
     // Build sort object

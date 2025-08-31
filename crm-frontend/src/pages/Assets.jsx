@@ -44,6 +44,8 @@ import {
 import { assetAPI } from '../services/api';
 import Spinner from '../components/Common/Spinner';
 import { toast } from 'react-toastify';
+import GenerateReportButton from '../components/reports/GenerateReportButton';
+import { getModuleData, buildPdf } from '../services/reportService';
 
 const Assets = () => {
   const [assets, setAssets] = useState([]);
@@ -188,6 +190,17 @@ const Assets = () => {
       images: asset.images || []
     });
     setDialogOpen(true);
+  };
+
+  const handleGenerateReport = async (reportParams) => {
+    try {
+      const data = await getModuleData('assets', reportParams);
+      buildPdf('assets', data, reportParams);
+    } catch (error) {
+      console.error('Error generating assets report:', error);
+      toast.error('Failed to generate assets report');
+      throw error; // Re-throw to let GenerateReportButton handle it
+    }
   };
 
   const handleDelete = async (id) => {
@@ -344,13 +357,22 @@ const Assets = () => {
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4">Asset Management</Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleAddNew}
-        >
-          Add Asset
-        </Button>
+        <Box display="flex" gap={2}>
+          <GenerateReportButton
+            moduleKey="assets"
+            moduleTitle="Assets"
+            onGenerate={handleGenerateReport}
+            size="medium"
+            variant="outlined"
+          />
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleAddNew}
+          >
+            Add Asset
+          </Button>
+        </Box>
       </Box>
 
       {/* Authentication Status Alert */}

@@ -31,7 +31,19 @@ router.post('/register', async (req, res) => {
 // Login
 router.post('/login', async (req, res) => {
   try {
+    console.log('🔍 DEBUG: Login endpoint hit');
+    console.log('🔍 DEBUG: Request headers:', req.headers);
+    console.log('🔍 DEBUG: Request body:', req.body);
+    console.log('🔍 DEBUG: Request method:', req.method);
+    console.log('🔍 DEBUG: Request URL:', req.url);
+    
     const { email, password } = req.body;
+    
+    // Validate input
+    if (!email || !password) {
+      console.log('Missing email or password');
+      return res.status(400).json({ message: 'Email and password are required' });
+    }
     
     // Development mode: Create default user if no users exist
     const userCount = await User.countDocuments();
@@ -49,10 +61,16 @@ router.post('/login', async (req, res) => {
     }
     
     const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ message: 'Invalid credentials' });
+    if (!user) {
+      console.log('User not found for email:', email);
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
+    if (!isMatch) {
+      console.log('Password mismatch for user:', email);
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
 
     const payload = {
       id: user._id,
@@ -61,7 +79,14 @@ router.post('/login', async (req, res) => {
       role: user.role
     };
 
+    console.log('Attempting to sign JWT with payload:', payload);
+    if (!process.env.JWT_SECRET) {
+      console.error('JWT_SECRET is not set!');
+      return res.status(500).json({ message: 'Server configuration error' });
+    }
+    
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1d' });
+    console.log('JWT token created successfully');
     res.json({ token });
   } catch (err) {
     console.error('Login error:', err);

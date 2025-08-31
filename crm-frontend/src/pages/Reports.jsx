@@ -12,18 +12,10 @@ import {
   MenuItem
 } from '@mui/material';
 import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
   PieChart,
   Pie,
   Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer
 } from 'recharts';
 import { reportsAPI } from '../services/api';
@@ -34,8 +26,6 @@ const Reports = () => {
   const [timeRange, setTimeRange] = useState('month');
   const [customerStats, setCustomerStats] = useState([]);
   const [assetStats, setAssetStats] = useState([]);
-  const [leadData, setLeadData] = useState([]);
-  const [revenueData, setRevenueData] = useState([]);
 
   useEffect(() => {
     fetchReportData();
@@ -43,17 +33,13 @@ const Reports = () => {
 
   const fetchReportData = async () => {
     try {
-      const [customerRes, assetRes, leadRes, revenueRes] = await Promise.all([
+      const [customerRes, assetRes] = await Promise.all([
         reportsAPI.getCustomerStats(),
-        reportsAPI.getAssetStats(),
-        reportsAPI.getLeadConversions(),
-        reportsAPI.getRevenueTrend()
+        reportsAPI.getAssetStats()
       ]);
 
       setCustomerStats(customerRes.data);
       setAssetStats(assetRes.data);
-      setLeadData(leadRes.data);
-      setRevenueData(revenueRes.data);
     } catch (error) {
       console.error('Error fetching report data:', error);
       // Mock data for development
@@ -66,22 +52,6 @@ const Reports = () => {
         { name: 'Available', value: 30, color: '#4caf50' },
         { name: 'In Use', value: 12, color: '#2196f3' },
         { name: 'Maintenance', value: 3, color: '#ff9800' }
-      ]);
-      setLeadData([
-        { month: 'Jan', leads: 45, conversions: 12 },
-        { month: 'Feb', leads: 52, conversions: 15 },
-        { month: 'Mar', leads: 48, conversions: 18 },
-        { month: 'Apr', leads: 61, conversions: 22 },
-        { month: 'May', leads: 55, conversions: 19 },
-        { month: 'Jun', leads: 67, conversions: 25 }
-      ]);
-      setRevenueData([
-        { month: 'Jan', revenue: 95000 },
-        { month: 'Feb', revenue: 110000 },
-        { month: 'Mar', revenue: 105000 },
-        { month: 'Apr', revenue: 130000 },
-        { month: 'May', revenue: 120000 },
-        { month: 'Jun', revenue: 125000 }
       ]);
     } finally {
       setLoading(false);
@@ -168,50 +138,7 @@ const Reports = () => {
           </Paper>
         </Grid>
 
-        {/* Lead Conversions */}
-        <Grid item xs={12} lg={6}>
-          <Paper sx={{ p: 3, height: 400 }}>
-            <Typography variant="h6" gutterBottom>
-              Lead Conversions
-            </Typography>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={leadData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="leads" fill="#2196f3" name="Total Leads" />
-                <Bar dataKey="conversions" fill="#4caf50" name="Conversions" />
-              </BarChart>
-            </ResponsiveContainer>
-          </Paper>
-        </Grid>
 
-        {/* Revenue Trend */}
-        <Grid item xs={12} lg={6}>
-          <Paper sx={{ p: 3, height: 400 }}>
-            <Typography variant="h6" gutterBottom>
-              Revenue Trend
-            </Typography>
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={revenueData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="revenue"
-                  stroke="#4caf50"
-                  strokeWidth={2}
-                  name="Revenue ($)"
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </Paper>
-        </Grid>
 
         {/* Summary Cards */}
         <Grid item xs={12} sm={6} md={3}>
@@ -240,31 +167,6 @@ const Reports = () => {
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Total Leads
-              </Typography>
-              <Typography variant="h4">
-                {leadData.reduce((sum, item) => sum + item.leads, 0)}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Total Revenue
-              </Typography>
-              <Typography variant="h4">
-                ${revenueData.reduce((sum, item) => sum + item.revenue, 0).toLocaleString()}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
       </Grid>
     </Box>
   );

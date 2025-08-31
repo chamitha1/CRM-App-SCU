@@ -40,6 +40,8 @@ import {
 import { customerAPI } from '../services/api';
 import Spinner from '../components/Common/Spinner';
 import { toast } from 'react-toastify';
+import GenerateReportButton from '../components/reports/GenerateReportButton';
+import * as reportService from '../services/reportService';
 
 const Customers = () => {
   const [customers, setCustomers] = useState([]);
@@ -309,6 +311,16 @@ const Customers = () => {
     }
   };
 
+  const handleGenerateReport = async (reportParams) => {
+    try {
+      const data = await reportService.getModuleData('customers', reportParams);
+      reportService.buildPdf('customers', data, reportParams);
+    } catch (error) {
+      console.error('Error generating customers report:', error);
+      throw error;
+    }
+  };
+
   if (loading) {
     return <Spinner message="Loading customers..." />;
   }
@@ -317,13 +329,20 @@ const Customers = () => {
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4">Customers & Orders</Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleAddNew}
-        >
-          Add Customer
-        </Button>
+        <Stack direction="row" spacing={2}>
+          <GenerateReportButton
+            moduleKey="customers"
+            moduleTitle="Customers & Orders"
+            onGenerate={handleGenerateReport}
+          />
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleAddNew}
+          >
+            Add Customer
+          </Button>
+        </Stack>
       </Box>
 
       {/* Search Bar */}

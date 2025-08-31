@@ -6,7 +6,6 @@ import {
   CardContent,
   CardActionArea,
   Typography,
-  Paper,
   useTheme
 } from '@mui/material';
 import {
@@ -17,18 +16,6 @@ import {
   TrendingUp as TrendingUpIcon,
   AttachMoney as MoneyIcon
 } from '@mui/icons-material';
-import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer
-} from 'recharts';
 import { reportsAPI } from '../services/api';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Spinner from '../components/Common/Spinner';
@@ -38,8 +25,6 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [stats, setStats] = useState(null);
-  const [leadConversions, setLeadConversions] = useState([]);
-  const [revenueTrend, setRevenueTrend] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -47,15 +32,8 @@ const Dashboard = () => {
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      const [statsRes, conversionsRes, revenueRes] = await Promise.all([
-        reportsAPI.getDashboardStats(),
-        reportsAPI.getLeadConversions(),
-        reportsAPI.getRevenueTrend()
-      ]);
-
+      const statsRes = await reportsAPI.getDashboardStats();
       setStats(statsRes.data);
-      setLeadConversions(conversionsRes.data);
-      setRevenueTrend(revenueRes.data);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
       // Set mock data for development
@@ -67,22 +45,6 @@ const Dashboard = () => {
         monthlyRevenue: 125000,
         activeProjects: 12
       });
-      setLeadConversions([
-        { month: 'Jan', conversions: 12, leads: 45 },
-        { month: 'Feb', conversions: 15, leads: 52 },
-        { month: 'Mar', conversions: 18, leads: 48 },
-        { month: 'Apr', conversions: 22, leads: 61 },
-        { month: 'May', conversions: 19, leads: 55 },
-        { month: 'Jun', conversions: 25, leads: 67 }
-      ]);
-      setRevenueTrend([
-        { month: 'Jan', revenue: 95000 },
-        { month: 'Feb', revenue: 110000 },
-        { month: 'Mar', revenue: 105000 },
-        { month: 'Apr', revenue: 130000 },
-        { month: 'May', revenue: 120000 },
-        { month: 'Jun', revenue: 125000 }
-      ]);
     } finally {
       setLoading(false);
     }
@@ -195,50 +157,6 @@ const Dashboard = () => {
         </Grid>
       </Grid>
 
-      {/* Charts */}
-      <Grid container spacing={3}>
-        <Grid item xs={12} lg={6}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              Lead Conversions
-            </Typography>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={leadConversions}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="leads" fill={theme.palette.primary.main} name="Total Leads" />
-                <Bar dataKey="conversions" fill={theme.palette.success.main} name="Conversions" />
-              </BarChart>
-            </ResponsiveContainer>
-          </Paper>
-        </Grid>
-        <Grid item xs={12} lg={6}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              Revenue Trend
-            </Typography>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={revenueTrend}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="revenue"
-                  stroke={theme.palette.primary.main}
-                  strokeWidth={2}
-                  name="Revenue ($)"
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </Paper>
-        </Grid>
-      </Grid>
     </Box>
   );
 };

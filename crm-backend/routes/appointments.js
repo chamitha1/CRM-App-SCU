@@ -3,10 +3,27 @@ const Appointment = require('../models/Appointment');
 const auth = require('../middleware/auth');
 const router = express.Router();
 
-// Get all appointments
+// Get all appointments with optional date filtering
 router.get('/', auth, async (req, res) => {
   try {
-    const appointments = await Appointment.find({})
+    const { from, to, allTime } = req.query;
+    let query = {};
+    
+    // Apply date filtering if not allTime - filter by appointment date (startDate)
+    if (!allTime && from && to) {
+      const startOfDay = new Date(from);
+      startOfDay.setUTCHours(0, 0, 0, 0);
+      
+      const endOfDay = new Date(to);
+      endOfDay.setUTCHours(23, 59, 59, 999);
+      
+      query.startDate = {
+        $gte: startOfDay,
+        $lte: endOfDay
+      };
+    }
+    
+    const appointments = await Appointment.find(query)
       .populate('createdBy', 'name email')
       .populate('assignedTo', 'name email')
       .populate('customerId', 'firstName lastName email')

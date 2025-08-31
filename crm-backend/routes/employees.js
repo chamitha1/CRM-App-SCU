@@ -3,10 +3,28 @@ const Employee = require('../models/Employee');
 const auth = require('../middleware/auth');
 const router = express.Router();
 
-// Get all employees
+// Get all employees with optional date filtering
 router.get('/', auth, async (req, res) => {
   try {
-    const employees = await Employee.find({})
+    const { from, to, allTime } = req.query;
+    let query = {};
+    
+    // Apply date filtering if not allTime - filter by hire date if provided
+    if (!allTime && from && to) {
+      const startOfDay = new Date(from);
+      startOfDay.setUTCHours(0, 0, 0, 0);
+      
+      const endOfDay = new Date(to);
+      endOfDay.setUTCHours(23, 59, 59, 999);
+      
+      // Filter by hireDate if it exists, otherwise no date filtering for employees
+      query.$or = [
+        { hireDate: { $gte: startOfDay, $lte: endOfDay } },
+        { hireDate: { $exists: false } }
+      ];
+    }
+    
+    const employees = await Employee.find(query)
       .populate('createdBy', 'name email')
       .sort({ createdAt: -1 });
     res.json(employees);

@@ -67,9 +67,16 @@ const LoginForm = () => {
     }
 
     setLoading(true);
+    console.log('🔍 DEBUG: Attempting login with formData:', formData);
+    console.log('🔍 DEBUG: API baseURL:', process.env.REACT_APP_API_URL || 'http://localhost:5000/api');
+    
     try {
+      console.log('🔍 DEBUG: Making API call to authAPI.login()');
       const response = await authAPI.login(formData);
+      console.log('🔍 DEBUG: Login API response:', response.data);
+      
       const result = login(response.data.token);
+      console.log('🔍 DEBUG: Auth context login result:', result);
       
       if (result.success) {
         toast.success('Login successful!');
@@ -78,7 +85,17 @@ const LoginForm = () => {
         toast.error(result.error || 'Login failed');
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('🔍 DEBUG: Login error details:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          data: error.config?.data
+        }
+      });
       const errorMessage = error.response?.data?.message || 'Login failed. Please try again.';
       toast.error(errorMessage);
     } finally {

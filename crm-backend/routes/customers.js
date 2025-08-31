@@ -3,10 +3,29 @@ const Customer = require('../models/Customer');
 const auth = require('../middleware/auth');
 const router = express.Router();
 
-// Get all customers
+// Get all customers with optional date filtering
 router.get('/', auth, async (req, res) => {
   try {
-    const customers = await Customer.find({}).populate('createdBy', 'name email').sort({ createdAt: -1 });
+    const { from, to, allTime } = req.query;
+    let query = {};
+    
+    // Apply date filtering if not allTime
+    if (!allTime && from && to) {
+      const startOfDay = new Date(from);
+      startOfDay.setUTCHours(0, 0, 0, 0);
+      
+      const endOfDay = new Date(to);
+      endOfDay.setUTCHours(23, 59, 59, 999);
+      
+      query.createdAt = {
+        $gte: startOfDay,
+        $lte: endOfDay
+      };
+    }
+    
+    const customers = await Customer.find(query)
+      .populate('createdBy', 'name email')
+      .sort({ createdAt: -1 });
     res.json(customers);
   } catch (error) {
     res.status(500).json({ message: error.message });

@@ -4,10 +4,27 @@ const Customer = require('../models/Customer');
 const auth = require('../middleware/auth');
 const router = express.Router();
 
-// Get all leads
+// Get all leads with optional date filtering
 router.get('/', auth, async (req, res) => {
   try {
-    const leads = await Lead.find({})
+    const { from, to, allTime } = req.query;
+    let query = {};
+    
+    // Apply date filtering if not allTime
+    if (!allTime && from && to) {
+      const startOfDay = new Date(from);
+      startOfDay.setUTCHours(0, 0, 0, 0);
+      
+      const endOfDay = new Date(to);
+      endOfDay.setUTCHours(23, 59, 59, 999);
+      
+      query.createdAt = {
+        $gte: startOfDay,
+        $lte: endOfDay
+      };
+    }
+    
+    const leads = await Lead.find(query)
       .populate('createdBy', 'name email')
       .populate('assignedTo', 'name email')
       .sort({ createdAt: -1 });

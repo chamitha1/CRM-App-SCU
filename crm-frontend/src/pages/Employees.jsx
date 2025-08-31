@@ -39,6 +39,8 @@ import {
 import { employeeAPI } from '../services/api';
 import Spinner from '../components/Common/Spinner';
 import { toast } from 'react-toastify';
+import GenerateReportButton from '../components/reports/GenerateReportButton';
+import { getModuleData, buildPdf } from '../services/reportService';
 
 const Employees = () => {
   const [employees, setEmployees] = useState([]);
@@ -113,6 +115,17 @@ const Employees = () => {
       status: 'active'
     });
     setDialogOpen(true);
+  };
+
+  const handleGenerateReport = async (reportParams) => {
+    try {
+      const data = await getModuleData('employees', reportParams);
+      buildPdf('employees', data, reportParams);
+    } catch (error) {
+      console.error('Error generating employees report:', error);
+      toast.error('Failed to generate employees report');
+      throw error; // Re-throw to let GenerateReportButton handle it
+    }
   };
 
   const handleEdit = (employee) => {
@@ -256,13 +269,22 @@ const Employees = () => {
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4">Employee Management</Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleAddNew}
-        >
-          Add Employee
-        </Button>
+        <Box display="flex" gap={2}>
+          <GenerateReportButton
+            moduleKey="employees"
+            moduleTitle="Employees"
+            onGenerate={handleGenerateReport}
+            size="medium"
+            variant="outlined"
+          />
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleAddNew}
+          >
+            Add Employee
+          </Button>
+        </Box>
       </Box>
 
       {/* Authentication Status Alert */}
@@ -324,7 +346,10 @@ const Employees = () => {
                 <Typography variant="body2">Email: {employee.email}</Typography>
                 <Typography variant="body2">Phone: {employee.phone || '—'}</Typography>
                 <Typography variant="body2">Role: {employee.role}</Typography>
-                <Typography variant="body2">Status: <Chip size="small" label={employee.status} color={getStatusColor(employee.status)} /></Typography>
+                <Box display="flex" alignItems="center" gap={1}>
+                  <Typography variant="body2">Status:</Typography>
+                  <Chip size="small" label={employee.status} color={getStatusColor(employee.status)} />
+                </Box>
               </CardContent>
               <CardActions>
                 <Tooltip title="View Details">

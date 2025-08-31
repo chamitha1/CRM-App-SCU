@@ -52,6 +52,9 @@ import Spinner from '../components/Common/Spinner';
 import DocumentUploadModal from '../components/Documents/DocumentUploadModal';
 import DocumentEditModal from '../components/Documents/DocumentEditModal';
 import DocumentPreviewModal from '../components/Documents/DocumentPreviewModal';
+import GenerateReportButton from '../components/reports/GenerateReportButton';
+import { getModuleData, buildPdf } from '../services/reportService';
+import { toast } from 'react-toastify';
 
 const DocumentManagement = () => {
   const [documents, setDocuments] = useState([]);
@@ -72,7 +75,7 @@ const DocumentManagement = () => {
   const [selectedDocument, setSelectedDocument] = useState(null);
   
   // Context menu
-  const [contextMenu, setContextMenu] = useState(null);
+  const [contextMenu, setContextMenu] = useState(false);
   const [contextMenuAnchor, setContextMenuAnchor] = useState(null);
   
   // Notifications
@@ -154,7 +157,8 @@ const DocumentManagement = () => {
         severity: 'error'
       });
     }
-    setContextMenu(null);
+    setContextMenu(false);
+
     setDeleteConfirmOpen(false);
   };
 
@@ -182,7 +186,7 @@ const DocumentManagement = () => {
         severity: 'error'
       });
     }
-    setContextMenu(null);
+    setContextMenu(false);
   };
 
   const handleContextMenu = (event, document) => {
@@ -216,6 +220,17 @@ const DocumentManagement = () => {
     });
   };
 
+  const handleGenerateReport = async (reportParams) => {
+    try {
+      const data = await getModuleData('documents', reportParams);
+      buildPdf('documents', data, reportParams);
+    } catch (error) {
+      console.error('Error generating documents report:', error);
+      toast.error('Failed to generate documents report');
+      throw error; // Re-throw to let GenerateReportButton handle it
+    }
+  };
+
   if (loading && documents.length === 0) {
     return <Spinner message="Loading documents..." />;
   }
@@ -227,19 +242,28 @@ const DocumentManagement = () => {
         <Typography variant="h4" sx={{ fontWeight: 600, color: '#1f2937' }}>
           Document Management
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<UploadIcon />}
-          onClick={() => setUploadModalOpen(true)}
-          sx={{
-            background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-            '&:hover': {
-              background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
-            }
-          }}
-        >
-          Upload Document
-        </Button>
+        <Box display="flex" gap={2}>
+          <GenerateReportButton
+            moduleKey="documents"
+            moduleTitle="Documents"
+            onGenerate={handleGenerateReport}
+            size="medium"
+            variant="outlined"
+          />
+          <Button
+            variant="contained"
+            startIcon={<UploadIcon />}
+            onClick={() => setUploadModalOpen(true)}
+            sx={{
+              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+              }
+            }}
+          >
+            Upload Document
+          </Button>
+        </Box>
       </Box>
 
       {/* Search and Filter Toolbar */}
@@ -562,8 +586,8 @@ const DocumentManagement = () => {
                  {/* Context Menu */}
       <Menu
         anchorEl={contextMenuAnchor}
-        open={contextMenu}
-        onClose={() => setContextMenu(null)}
+        open={Boolean(contextMenu)}
+        onClose={() => setContextMenu(false)}
         anchorOrigin={{
           vertical: 'bottom',
           horizontal: 'right',
@@ -576,7 +600,7 @@ const DocumentManagement = () => {
         <MenuItem
           onClick={() => {
             setEditModalOpen(true);
-            setContextMenu(null);
+            setContextMenu(false);
           }}
         >
           <ListItemIcon>
@@ -594,7 +618,7 @@ const DocumentManagement = () => {
                            <MenuItem
                      onClick={() => {
                        openDeleteConfirm(selectedDocument);
-                       setContextMenu(null);
+                       setContextMenu(false);
                      }}
                      sx={{ color: 'error.main' }}
                    >
